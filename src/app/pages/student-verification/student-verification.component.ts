@@ -1,5 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import Swal from 'sweetalert2';
 
 interface StudentVerification {
@@ -14,6 +16,8 @@ interface StudentVerification {
 
 @Component({
   selector: 'app-student-verification',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
   templateUrl: './student-verification.component.html',
   styleUrls: ['./student-verification.component.css']
 })

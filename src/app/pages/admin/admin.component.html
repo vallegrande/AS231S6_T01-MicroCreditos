@@ -1,6 +1,7 @@
 <div class="admin-container">
-  <!-- Header con estadísticas y acciones -->
-  <div class="admin-header">
+  <div class="admin-content-wrapper">
+    <!-- Header con estadísticas y acciones -->
+    <div class="admin-header">
     <div class="header-content">
       <h1>Panel de Administración</h1>
       <p>Gestiona las solicitudes de préstamo y contratos</p>
@@ -113,28 +114,18 @@
     </div>
   </div>
   
-  <!-- Selector de red -->
-  <div class="network-selector">
-    <h3>Cambiar Red</h3>
-    <div class="network-buttons">
-      <button 
-        class="btn btn-network"
-        (click)="switchNetwork('holesky')">
-        Holešky
-      </button>
-      <button 
-        class="btn btn-network"
-        (click)="switchNetwork('sepolia')">
-        Sepolia
-      </button>
-      <button 
-        class="btn btn-network"
-        (click)="switchNetwork('goerli')">
-        Goerli
-      </button>
+  <!-- Información de red actual -->
+  <div class="current-network-info" *ngIf="account && chainId">
+    <div class="network-status">
+      <span class="network-icon">🌐</span>
+      <span class="network-label">Red Actual:</span>
+      <span class="network-name">{{ getNetworkName(chainId) }}</span>
+      <span class="auto-filter-badge" *ngIf="filterNetwork === currentNetwork">
+        🔍 Auto-filtrado
+      </span>
     </div>
   </div>
-  
+
   <!-- Filtros -->
   <div class="filters-container">
     <div class="filter-group">
@@ -154,6 +145,20 @@
     </div>
     
     <div class="filter-group">
+      <label for="networkFilter">Filtrar por red:</label>
+      <select 
+        id="networkFilter" 
+        [(ngModel)]="filterNetwork" 
+        (change)="applyFilter()" 
+        class="form-control">
+        <option value="all">Todas las redes</option>
+        <option *ngFor="let network of getAvailableNetworks()" [value]="network">
+          {{ getNetworkLabel(network) }}
+        </option>
+      </select>
+    </div>
+    
+    <div class="filter-group">
       <label for="searchInput">Buscar:</label>
       <input 
         type="text" 
@@ -163,6 +168,7 @@
         placeholder="ID, nombre, dirección..." 
         class="form-control">
     </div>
+
   </div>
   
   <!-- Mensaje de error -->
@@ -406,6 +412,7 @@
         </div>
       </div>
     </div>
+  </div>
   </div>
 </div>
 

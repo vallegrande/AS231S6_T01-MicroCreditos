@@ -52,9 +52,27 @@
             <i class="fas fa-network-wired"></i>
           </div>
           <div class="card-content">
-            <span class="card-label">Red</span>
+            <span class="card-label">Red del Préstamo</span>
             <span class="card-value">{{ loan.network.toUpperCase() }}</span>
           </div>
+        </div>
+      </div>
+      
+      <!-- Estado de red actual -->
+      <div class="network-status" 
+           [class.network-match]="isNetworkMatching()"
+           [class.network-mismatch]="!isNetworkMatching() && currentNetwork && currentNetwork !== 'unknown'">
+        <div class="status-icon">
+          <i class="fas" 
+             [class.fa-check-circle]="isNetworkMatching()"
+             [class.fa-exclamation-triangle]="!isNetworkMatching() && currentNetwork && currentNetwork !== 'unknown'"
+             [class.fa-question-circle]="!currentNetwork || currentNetwork === 'unknown'"></i>
+        </div>
+        <div class="status-message">
+          {{ getNetworkStatusMessage() }}
+        </div>
+        <div class="status-hint" *ngIf="!isNetworkMatching() && currentNetwork && currentNetwork !== 'unknown'">
+          Cambia a la red {{ loan.network.toUpperCase() }} en MetaMask para ver las transacciones correctas
         </div>
       </div>
     </div>

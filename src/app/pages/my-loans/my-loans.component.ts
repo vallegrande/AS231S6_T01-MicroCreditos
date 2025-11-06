@@ -1,35 +1,60 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { WalletService } from '../../services/wallet.service';
 import { LoanService } from '../../services/loan/loan.service';
 import { ContractService } from '../../services/contract/contract.service';
+import { NotificationService } from '../../services/notification/notification.service';
 import { LoanRequest } from '../../interfaces/loan.interface';
 import { APP_CONSTANTS } from '../../constants/app.constants';
+import { TransactionViewerComponent } from '../../shared/transaction-viewer/transaction-viewer.component';
 import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-my-loans',
+  standalone: true,
+  imports: [CommonModule, FormsModule, TransactionViewerComponent],
   templateUrl: './my-loans.component.html',
   styleUrls: ['./my-loans.component.css']
 })
-export class MyLoansComponent implements OnInit {
+export class MyLoansComponent implements OnInit, OnDestroy {
   account: string | null = null;
-  loans: LoanRequest[] = [];
+  chainId: string | null = null;
+  currentNetwork: string = '';
+  allLoans: LoanRequest[] = [];
+  filteredLoans: LoanRequest[] = [];
+  loans: LoanRequest[] = []; // Para mantener compatibilidad
   error: string | null = null;
+  
+  // Filtros
+  filterStatus: string = 'all';
+  filterNetwork: string = 'all';
+  searchTerm: string = '';
   selectedLoan: LoanRequest | null = null;
   contractPreview: string = '';
   showContractPreview: boolean = false;
-  isPaying: boolean = false; // Para mostrar estado de pago
+  isPaying: boolean = false;
   showTransactionViewer: boolean = false;
   transactionViewerLoan: LoanRequest | null = null;
+  
+  // Para manejar los listeners de MetaMask
+  private accountsChangedListener: any;
+  private chainChangedListener: any;
 
   constructor(
     private wallet: WalletService,
     private loanService: LoanService,
-    private contractService: ContractService
+    private contractService: ContractService,
+    private notificationService: NotificationService
   ) {}
   
   ngOnInit() {
     this.loadAccountAndLoans();
+    this.setupMetaMaskListeners();
+  }
+
+  ngOnDestroy() {
+    this.removeMetaMaskListeners();
   }
   
   async loadAccountAndLoans() {
@@ -37,7 +62,14 @@ export class MyLoansComponent implements OnInit {
       const accounts = await this.wallet.getAccounts();
       if (accounts && accounts.length > 0) {
         this.account = accounts[0];
-        this.loans = this.loanService.getLoansByBorrower(this.account);
+        this.chainId = await this.wallet.getChainId();
+        this.currentNetwork = this.getNetworkKeyFromChainId(this.chainId);
+        
+        // Cargar todos los préstamos
+        this.allLoans = this.loanService.getLoansByBorrower(this.account);
+        
+        // Aplicar filtros
+        this.applyFilters();
       } else {
         this.error = 'No se ha detectado una wallet conectada. Por favor, conecta tu wallet para ver tus préstamos.';
       }
@@ -244,5 +276,248 @@ export class MyLoansComponent implements OnInit {
     } finally {
       this.isPaying = false;
     }
+  }
+
+  // Aplicar todos los filtros
+  applyFilters(): void {
+    let filtered = this.allLoans;
+    
+    // Filtrar por estado
+    if (this.filterStatus !== 'all') {
+      filtered = filtered.filter(loan => loan.status === this.filterStatus);
+    }
+    
+    // Filtrar por red
+    if (this.filterNetwork !== 'all') {
+      filtered = filtered.filter(loan => loan.network === this.filterNetwork);
+    }
+    
+    // Filtrar por término de búsqueda
+    if (this.searchTerm) {
+      const term = this.searchTerm.toLowerCase();
+      filtered = filtered.filter(loan => 
+        loan.id.toLowerCase().includes(term) ||
+        loan.purpose.toLowerCase().includes(term) ||
+        loan.borrowerName?.toLowerCase().includes(term) ||
+        this.getPurposeTypeLabel(loan.purposeType).toLowerCase().includes(term)
+      );
+    }
+    
+    this.filteredLoans = filtered;
+    this.loans = this.filteredLoans; // Para mantener compatibilidad
+    
+    console.log(`Filtros aplicados - Total: ${this.allLoans.length}, Filtrados: ${this.filteredLoans.length}`);
+  }
+
+  // Configurar listeners para detectar cambios en MetaMask
+  private setupMetaMaskListeners(): void {
+    if (this.isMetaMaskAvailable() && window.ethereum) {
+      // Listener para cambios de cuenta
+      this.accountsChangedListener = async (accounts: string[]) => {
+        console.log('Cuentas cambiadas en mis préstamos:', accounts);
+        if (accounts.length === 0) {
+          // Usuario desconectó MetaMask
+          this.account = null;
+          this.chainId = null;
+          this.currentNetwork = '';
+          this.allLoans = [];
+          this.filteredLoans = [];
+          this.loans = [];
+          this.error = 'Wallet desconectada. Por favor, conecta tu wallet para ver tus préstamos.';
+          this.notificationService.addNotification(
+            'warning', 
+            '⚠️ Wallet desconectada'
+          );
+        } else if (accounts[0] !== this.account) {
+          // Usuario cambió de cuenta
+          this.account = accounts[0];
+          this.notificationService.addNotification(
+            'info', 
+            `🔄 Cuenta cambiada: ...${accounts[0].slice(-4)}`
+          );
+          
+          // Recargar préstamos para la nueva cuenta
+          await this.loadAccountAndLoans();
+        }
+      };
+
+      // Listener para cambios de red
+      this.chainChangedListener = async (chainId: string) => {
+        console.log('Red cambiada en mis préstamos a:', chainId);
+        const oldChainId = this.chainId;
+        const oldNetwork = this.currentNetwork;
+        
+        this.chainId = chainId;
+        this.currentNetwork = this.getNetworkKeyFromChainId(chainId);
+        
+        // Mostrar notificación del cambio de red
+        const networkName = this.getNetworkName(chainId);
+        this.notificationService.addNotification(
+          'info', 
+          `🌐 Red cambiada a: ${networkName}`
+        );
+        
+        // Actualizar filtro de red automáticamente si está en "all"
+        if (this.filterNetwork === 'all' && this.currentNetwork && this.currentNetwork !== 'unknown') {
+          this.filterNetwork = this.currentNetwork;
+          this.notificationService.addNotification(
+            'info', 
+            `🔍 Filtro actualizado a red: ${networkName}`
+          );
+        }
+        
+        // Aplicar filtros
+        this.applyFilters();
+        
+        // Mostrar información sobre el filtrado
+        const filteredCount = this.filteredLoans.length;
+        const totalCount = this.allLoans.length;
+        
+        if (filteredCount === 0 && totalCount > 0) {
+          this.notificationService.addNotification(
+            'warning', 
+            `⚠️ No hay préstamos que coincidan con los filtros en ${networkName}`
+          );
+        } else if (filteredCount > 0) {
+          this.notificationService.addNotification(
+            'success', 
+            `🔍 Mostrando ${filteredCount} préstamo${filteredCount > 1 ? 's' : ''} con filtros aplicados`
+          );
+        }
+      };
+
+      // Registrar los listeners
+      window.ethereum.on('accountsChanged', this.accountsChangedListener);
+      window.ethereum.on('chainChanged', this.chainChangedListener);
+    }
+  }
+
+  // Remover listeners al destruir el componente
+  private removeMetaMaskListeners(): void {
+    if (this.isMetaMaskAvailable() && window.ethereum) {
+      if (this.accountsChangedListener) {
+        window.ethereum.removeListener('accountsChanged', this.accountsChangedListener);
+      }
+      if (this.chainChangedListener) {
+        window.ethereum.removeListener('chainChanged', this.chainChangedListener);
+      }
+    }
+  }
+
+  // Verificar si MetaMask está disponible
+  private isMetaMaskAvailable(): boolean {
+    return typeof window !== 'undefined' && typeof window.ethereum !== 'undefined';
+  }
+
+  // Obtener la clave de red desde el chainId
+  private getNetworkKeyFromChainId(chainId: string): string {
+    const chainIdToNetworkMap: { [key: string]: string } = {
+      '0x1': 'mainnet',
+      '0x5': 'goerli',
+      '0xaa36a7': 'sepolia',
+      '0x4268': 'holesky',
+      '0x1a4': 'ephemery',
+      '0x88bb0': 'hoodi'
+    };
+    
+    return chainIdToNetworkMap[chainId] || 'unknown';
+  }
+
+  // Obtener nombre de red mejorado
+  getNetworkName(chainId: string): string {
+    const chainIdMap: { [key: string]: string } = {
+      '0x1': 'Ethereum Mainnet',
+      '0x5': 'Goerli',
+      '0xaa36a7': 'Sepolia',
+      '0x4268': 'Holešky',
+      '0x1a4': 'Ephemery',
+      '0x88bb0': 'Ethereum Hoodi',
+      '0x89': 'Polygon Mainnet',
+      '0x13881': 'Polygon Mumbai',
+      '0xa86a': 'Avalanche Mainnet',
+      '0xa869': 'Avalanche Fuji'
+    };
+    
+    return chainIdMap[chainId] || `Red Desconocida (${chainId})`;
+  }
+
+  // Obtener información de filtrado para mostrar al usuario
+  getFilterInfo(): string {
+    if (!this.currentNetwork || this.currentNetwork === 'unknown') {
+      return 'Mostrando todos los préstamos';
+    }
+    
+    const networkName = this.getNetworkName(this.chainId!);
+    const filteredCount = this.filteredLoans.length;
+    const totalCount = this.allLoans.length;
+    
+    if (filteredCount === totalCount) {
+      return `Todos tus préstamos están en ${networkName}`;
+    } else if (filteredCount === 0) {
+      return `No tienes préstamos en ${networkName}`;
+    } else {
+      return `Mostrando ${filteredCount} de ${totalCount} préstamos en ${networkName}`;
+    }
+  }
+
+  // Verificar si hay préstamos en otras redes
+  hasLoansInOtherNetworks(): boolean {
+    return this.allLoans.length > this.filteredLoans.length;
+  }
+
+  // Obtener redes con préstamos
+  getNetworksWithLoans(): string[] {
+    const networks = new Set<string>();
+    this.allLoans.forEach(loan => {
+      if (loan.network) {
+        networks.add(loan.network);
+      }
+    });
+    return Array.from(networks);
+  }
+
+  // Obtener redes con préstamos
+  getAvailableNetworks(): string[] {
+    const networks = new Set<string>();
+    this.allLoans.forEach(loan => {
+      if (loan.network) {
+        networks.add(loan.network);
+      }
+    });
+    return Array.from(networks).sort();
+  }
+
+  // Función para cambiar el filtro de red automáticamente
+  setNetworkFilter(network: string): void {
+    this.filterNetwork = network;
+    this.applyFilters();
+    
+    if (network === 'all') {
+      this.notificationService.addNotification(
+        'info', 
+        '🔍 Mostrando préstamos de todas las redes'
+      );
+    } else {
+      this.notificationService.addNotification(
+        'info', 
+        `🔍 Filtrando préstamos de red: ${this.getNetworkLabel(network)}`
+      );
+    }
+  }
+
+  // Obtener información del filtro actual
+  getFilterSummary(): string {
+    const total = this.allLoans.length;
+    const filtered = this.filteredLoans.length;
+    
+    if (total === 0) {
+      return 'No tienes préstamos';
+    }
+    
+    if (filtered === total) {
+      return `Mostrando todos tus ${total} préstamos`;
+    }
+    
+    return `Mostrando ${filtered} de ${total} préstamos`;
   }
 }

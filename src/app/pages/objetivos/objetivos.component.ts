@@ -1,7 +1,10 @@
 import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-objetivos',
+  standalone: true,
+  imports: [CommonModule],
   templateUrl: './objetivos.component.html',
   styleUrls: ['./objetivos.component.css']
 })

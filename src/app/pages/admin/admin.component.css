@@ -1,7 +1,21 @@
 .admin-container {
   background: var(--bg-primary);
   min-height: 100vh;
-  padding: 2rem 0;
+  padding: 2rem 1rem;
+  display: flex;
+  justify-content: center;
+}
+
+.admin-content-wrapper {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--border-radius-xl);
+  padding: 1.5rem;
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Header */
@@ -9,8 +23,9 @@
   background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
   border-radius: var(--border-radius-xl);
   padding: 2rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   box-shadow: var(--shadow-medium);
+  border: var(--border-subtle);
 }
 
 .header-content h1 {
@@ -243,55 +258,13 @@
   color: var(--text-muted);
 }
 
-/* Selector de red */
-.network-selector {
-  background: var(--bg-card);
-  border-radius: var(--border-radius-lg);
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-  box-shadow: var(--shadow-subtle);
-  backdrop-filter: blur(20px);
-  border: var(--border-subtle);
-}
 
-.network-selector h3 {
-  margin-top: 0;
-  color: var(--text-primary);
-  margin-bottom: 1rem;
-}
-
-.network-buttons {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.btn-network {
-  padding: 0.75rem 1.5rem;
-  border: var(--border-subtle);
-  border-radius: var(--border-radius-md);
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-  cursor: pointer;
-  transition: var(--transition-normal);
-  font-weight: 600;
-}
-
-.btn-network:hover {
-  background: var(--bg-card);
-  border-color: var(--primary-cyan);
-  transform: translateY(-2px);
-}
-
-.btn-network:active {
-  transform: translateY(0);
-}
 
 /* Filtros */
 .filters-container {
   display: flex;
   gap: 1rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   flex-wrap: wrap;
   background: var(--bg-card);
   padding: 1.5rem;
@@ -299,6 +272,7 @@
   box-shadow: var(--shadow-subtle);
   backdrop-filter: blur(20px);
   border: var(--border-subtle);
+  position: relative;
 }
 
 .filter-group {
@@ -337,8 +311,9 @@
 
 .loans-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
   gap: 1.5rem;
+  max-width: 100%;
 }
 
 .loan-card {
@@ -710,9 +685,9 @@
 .modal-content {
   background: var(--bg-primary);
   border-radius: var(--border-radius-lg);
-  width: 90%;
-  max-width: 500px;
-  max-height: 90vh;
+  width: 85%;
+  max-width: 420px;
+  max-height: 85vh;
   overflow-y: auto;
   box-shadow: var(--shadow-strong);
   border: var(--border-subtle);
@@ -722,7 +697,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem;
+  padding: 1.25rem;
   border-bottom: var(--border-subtle);
 }
 
@@ -753,7 +728,7 @@
 }
 
 .modal-body {
-  padding: 1.5rem;
+  padding: 1.25rem;
 }
 
 .modal-body p {
@@ -762,8 +737,8 @@
 }
 
 .loan-detail-section {
-  margin-bottom: 1.5rem;
-  padding-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1.25rem;
   border-bottom: var(--border-subtle);
 }
 
@@ -776,7 +751,8 @@
 .loan-detail-section h3 {
   margin-top: 0;
   color: var(--text-primary);
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.1rem;
 }
 
 .form-group {
@@ -817,9 +793,26 @@
 }
 
 /* Responsive design */
+@media (max-width: 1200px) {
+  .admin-content-wrapper {
+    max-width: 1200px;
+  }
+  
+  .loans-grid {
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  }
+}
+
 @media (max-width: 768px) {
   .admin-container {
-    padding: 1rem 0;
+    padding: 1rem 0.5rem;
+  }
+  
+  .admin-content-wrapper {
+    max-width: 100%;
+    padding: 1rem;
+    margin: 0;
+    border-radius: var(--border-radius-lg);
   }
   
   .admin-header {
@@ -836,6 +829,11 @@
   
   .filters-container {
     flex-direction: column;
+    padding: 1rem;
+  }
+  
+  .loans-grid {
+    grid-template-columns: 1fr;
   }
   
   .loan-header {
@@ -864,8 +862,140 @@
   .view-toggle {
     flex-direction: column;
   }
-  
-  .network-buttons {
-    flex-direction: column;
+}
+
+/* Información de red actual */
+.current-network-info {
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(102, 126, 234, 0.1));
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: var(--border-radius-lg);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-subtle);
+}
+
+.current-network-info::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, var(--primary-cyan), var(--primary-purple));
+  border-radius: var(--border-radius-lg);
+  padding: 2px;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  z-index: -1;
+}
+
+.network-status {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.network-icon {
+  font-size: 1.5rem;
+}
+
+.network-label {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.network-name {
+  font-weight: 700;
+  color: var(--primary-cyan);
+  font-size: 1.1rem;
+}
+
+.auto-filter-badge {
+  background: linear-gradient(135deg, var(--primary-green), #059669);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--border-radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
   }
+  50% {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+  }
+}
+
+
+
+/* Mejoras para el filtro de red */
+.filter-group select[id="networkFilter"] {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+}
+
+.filter-group select[id="networkFilter"]:focus {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2300d4ff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+}
+
+/* Indicador de filtro activo */
+.filters-container::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(135deg, var(--primary-cyan), var(--primary-purple));
+  border-radius: var(--border-radius-lg);
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.filters-container.has-active-filters::after {
+  opacity: 1;
+}
+
+/* Animación para cambios de red */
+.loan-card {
+  transition: all 0.3s ease, opacity 0.5s ease;
+}
+
+.loan-card.network-filtered {
+  opacity: 0.6;
+  transform: scale(0.98);
+}
+
+.loan-card.network-match {
+  opacity: 1;
+  transform: scale(1);
+  border-color: var(--primary-cyan);
+  box-shadow: var(--glow-subtle);
+}
+
+/* Responsive para nuevos elementos */
+@media (max-width: 768px) {
+  .current-network-info {
+    padding: 1rem;
+  }
+  
+  .network-status {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+
 }

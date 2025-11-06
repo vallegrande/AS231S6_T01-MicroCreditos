@@ -1,4 +1,6 @@
 import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { WalletService } from '../../services/wallet.service';
 import { LoanService } from '../../services/loan/loan.service';
 import { APP_CONSTANTS } from '../../constants/app.constants';
@@ -7,6 +9,8 @@ import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-loan-request',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
   templateUrl: './loan-request.component.html',
   styleUrls: ['./loan-request.component.css']
 })

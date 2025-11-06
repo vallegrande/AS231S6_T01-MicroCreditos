@@ -308,4 +308,200 @@
 
 [data-theme="light"] .login-card:hover {
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}/* 
+Estilos para autenticación dual */
+.login-methods {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.btn-google,
+.btn-metamask {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 24px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 60px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.btn-google:disabled,
+.btn-metamask:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btn-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: opacity 0.3s ease;
+}
+
+.btn-google:disabled .btn-content,
+.btn-metamask:disabled .btn-content {
+  opacity: 0.5;
+}
+
+.btn-google {
+  background: white;
+  border-color: #e2e8f0;
+  color: #2d3748;
+}
+
+.btn-google:hover:not(:disabled) {
+  border-color: #4285f4;
+  box-shadow: 0 4px 12px rgba(66, 133, 244, 0.15);
+  transform: translateY(-2px);
+}
+
+.btn-metamask {
+  background: linear-gradient(135deg, #f6851b 0%, #e2761b 100%);
+  color: white;
+  border-color: #f6851b;
+}
+
+.btn-metamask:hover:not(:disabled) {
+  background: linear-gradient(135deg, #e2761b 0%, #d1661b 100%);
+  box-shadow: 0 4px 12px rgba(246, 133, 27, 0.3);
+  transform: translateY(-2px);
+}
+
+.google-icon,
+.metamask-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.divider {
+  position: relative;
+  margin: 10px 0;
+}
+
+.divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--border-subtle);
+}
+
+.divider-text {
+  background: var(--bg-card);
+  padding: 0 20px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  position: relative;
+  z-index: 1;
+  display: block;
+  text-align: center;
+}
+
+.loading-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top: 3px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.method-info {
+  margin-bottom: 16px;
+}
+
+.method-info .info-text {
+  margin-bottom: 8px;
+  text-align: left;
+}
+
+.method-info .info-text strong {
+  color: var(--text-primary);
+}
+
+.terms-text {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 1rem;
+}
+
+/* Responsive para métodos de login */
+@media (max-width: 480px) {
+  .btn-google,
+  .btn-metamask {
+    padding: 14px 20px;
+    font-size: 0.95rem;
+  }
+  
+  .google-icon,
+  .metamask-icon {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .btn-content {
+    gap: 10px;
+  }
+}/
+* Contenedor para el botón de Google */
+.google-signin-container {
+  position: relative;
+}
+
+#google-signin-button {
+  margin-bottom: 10px;
+}
+
+/* Ocultar el botón personalizado si Google renderiza el suyo */
+.google-signin-container:has(#google-signin-button > div) .btn-google {
+  display: none;
+}/* E
+stilos para el botón de GitHub */
+.btn-github {
+  background: #24292e;
+  color: white;
+  border-color: #24292e;
+}
+
+.btn-github:hover:not(:disabled) {
+  background: #1a1e22;
+  box-shadow: 0 4px 12px rgba(36, 41, 46, 0.3);
+  transform: translateY(-2px);
+}
+
+.github-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.github-icon path {
+  fill: white;
+}
+
+/* Ajustar el espaciado para tres botones */
+.login-methods {
+  gap: 12px;
+}
+
+.divider {
+  margin: 8px 0;
 }

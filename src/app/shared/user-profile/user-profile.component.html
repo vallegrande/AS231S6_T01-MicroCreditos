@@ -1,76 +1,103 @@
 <div class="user-profile-container">
   <!-- Botón de perfil de usuario -->
-  <div class="profile-button" (click)="toggleProfileMenu()" *ngIf="account">
+  <div class="profile-button" (click)="toggleProfileMenu()" *ngIf="currentUser">
     <div class="avatar-placeholder">
-      <span class="avatar-icon">👤</span>
+      <img *ngIf="currentUser.picture" [src]="currentUser.picture" class="avatar-image" alt="Avatar">
+      <span *ngIf="!currentUser.picture" class="avatar-icon">👤</span>
     </div>
     <div class="user-info">
-      <div class="user-address">{{ account | slice:0:6 }}...{{ account | slice:-4 }}</div>
+      <div class="user-address" *ngIf="currentUser.loginMethod === 'web3'">
+        {{ currentUser.walletAddress | slice:0:6 }}...{{ currentUser.walletAddress | slice:-4 }}
+      </div>
+      <div class="user-name" *ngIf="currentUser.loginMethod === 'google'">
+        {{ currentUser.name }}
+      </div>
       <div class="user-role">{{ isAdmin ? 'Administrador' : 'Cliente' }}</div>
     </div>
     <div class="dropdown-arrow">▼</div>
   </div>
 
-  <!-- Botón de conexión si no hay cuenta -->
-  <button *ngIf="!account" (click)="connect()" class="btn btn-primary connect-button">
+  <!-- Botón de conexión si no hay usuario -->
+  <button *ngIf="!currentUser" (click)="connect()" class="btn btn-primary connect-button">
     <span class="btn-icon">🔗</span>
-    <span class="btn-text">Conectar MetaMask</span>
+    <span class="btn-text">Iniciar Sesión</span>
   </button>
 
   <!-- Menú desplegable de perfil -->
-  <div class="profile-dropdown" *ngIf="showProfileMenu && account">
+  <div class="profile-dropdown" *ngIf="showProfileMenu && currentUser">
     <div class="dropdown-header">
       <div class="header-avatar">
-        <span class="avatar-icon">👤</span>
+        <img *ngIf="currentUser.picture" [src]="currentUser.picture" class="avatar-image" alt="Avatar">
+        <span *ngIf="!currentUser.picture" class="avatar-icon">👤</span>
       </div>
       <div class="header-info">
-        <div class="header-address">{{ account | slice:0:12 }}...{{ account | slice:-4 }}</div>
+        <div class="header-address" *ngIf="currentUser.loginMethod === 'web3'">
+          {{ currentUser.walletAddress | slice:0:12 }}...{{ currentUser.walletAddress | slice:-4 }}
+        </div>
+        <div class="header-name" *ngIf="currentUser.loginMethod === 'google'">
+          {{ currentUser.name }}
+        </div>
+        <div class="header-email" *ngIf="currentUser.email">
+          {{ currentUser.email }}
+        </div>
         <div class="header-role">{{ isAdmin ? 'Administrador' : 'Cliente' }}</div>
-      </div>
-    </div>
-
-    <div class="dropdown-divider"></div>
-
-    <div class="dropdown-section">
-      <div class="section-title">Saldo</div>
-      <div class="balance-display">
-        <span class="balance-amount">{{ balance }} ETH</span>
-      </div>
-    </div>
-
-    <div class="dropdown-divider"></div>
-
-    <div class="dropdown-section">
-      <div class="section-title">Información de conexión</div>
-      <div class="connection-info">
-        <div class="info-item">
-          <span class="info-label">Red:</span>
-          <span class="info-value">{{ getNetworkName(chainId!) }}</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">Estado:</span>
-          <span class="info-value status-connected">Conectado</span>
+        <div class="login-method">
+          <span class="method-badge" [class.google]="currentUser.loginMethod === 'google'" [class.web3]="currentUser.loginMethod === 'web3'">
+            {{ currentUser.loginMethod === 'google' ? 'Google' : 'Web3' }}
+          </span>
         </div>
       </div>
     </div>
 
     <div class="dropdown-divider"></div>
 
-    <div class="dropdown-section">
-      <div class="section-title">Cambiar Red</div>
-      <div class="network-switcher">
-        <button (click)="switchToNetwork('holesky')" class="network-option" [class.active]="chainId === '0x4268'">
-          <span class="network-icon">⛓️</span>
-          <span class="network-name">Holešky</span>
-        </button>
-        <button (click)="switchToNetwork('sepolia')" class="network-option" [class.active]="chainId === '0xaa36a7'">
-          <span class="network-icon">⛓️</span>
-          <span class="network-name">Sepolia</span>
-        </button>
+    <!-- Información Web3 solo si es login con Web3 -->
+    <div *ngIf="currentUser.loginMethod === 'web3'">
+      <div class="dropdown-section">
+        <div class="section-title">Saldo</div>
+        <div class="balance-display">
+          <span class="balance-amount">{{ balance }} ETH</span>
+        </div>
       </div>
-    </div>
 
-    <div class="dropdown-divider"></div>
+      <div class="dropdown-divider"></div>
+
+      <div class="dropdown-section">
+        <div class="section-title">Información de conexión</div>
+        <div class="connection-info">
+          <div class="info-item">
+            <span class="info-label">Red:</span>
+            <span class="info-value">{{ getNetworkName(chainId!) }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Estado:</span>
+            <span class="info-value status-connected">Conectado</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="dropdown-divider"></div>
+
+      <div class="dropdown-section">
+        <div class="section-title">Cambiar Red</div>
+        <div class="network-switcher">
+          <button (click)="switchToNetwork('holesky')" class="network-option" [class.active]="chainId === '0x4268'">
+            <span class="network-icon">⛓️</span>
+            <span class="network-name">Holešky</span>
+          </button>
+          <button (click)="switchToNetwork('sepolia')" class="network-option" [class.active]="chainId === '0xaa36a7'">
+            <span class="network-icon">⛓️</span>
+            <span class="network-name">Sepolia</span>
+          </button>
+            <button (click)="switchToNetwork('hoodi')" class="network-option" [class.active]="chainId === '0x88bb0'">
+            <span class="network-icon">⛓️</span>
+            <span class="network-name">Hoodi</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="dropdown-divider"></div>
+    </div>
 
     <div class="dropdown-section">
       <div class="section-title">Acciones rápidas</div>
@@ -90,7 +117,7 @@
           <span class="item-text">Mis Préstamos</span>
         </button>
         
-        <button (click)="openBlockchainExplorer()" class="dropdown-item transactions-item">
+        <button *ngIf="currentUser.loginMethod === 'web3'" (click)="openBlockchainExplorer()" class="dropdown-item transactions-item">
           <span class="item-icon">🔗</span>
           <span class="item-text">Ver Transacciones</span>
         </button>
@@ -106,7 +133,7 @@
 
     <button (click)="disconnect()" class="dropdown-item logout-item">
       <span class="item-icon">🔌</span>
-      <span class="item-text">Desconectar Wallet</span>
+      <span class="item-text">{{ currentUser.loginMethod === 'google' ? 'Cerrar Sesión' : 'Desconectar Wallet' }}</span>
     </button>
   </div>
 </div>

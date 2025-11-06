@@ -8,18 +8,104 @@
     <!-- Información de la cuenta -->
     <div class="account-card card-gamer">
       <h2>Información de Cuenta</h2>
-      <div class="account-info">
-        <div class="info-item">
-          <span class="info-label">Dirección:</span>
-          <span class="info-value">{{ account | slice:0:18 }}...{{ account | slice:-4 }}</span>
+      
+      <!-- Información del usuario -->
+      <div class="user-profile">
+        <div class="user-avatar">
+          <img *ngIf="currentUser?.picture" [src]="currentUser?.picture" [alt]="currentUser?.name || 'Usuario'">
+          <div *ngIf="!currentUser?.picture" class="avatar-placeholder">
+            {{ getUserInitial() }}
+          </div>
         </div>
-        <div class="info-item">
-          <span class="info-label">Red:</span>
-          <span class="info-value">{{ getNetworkName(chainId!) }}</span>
+        <div class="user-details">
+          <h3>{{ currentUser?.name || 'Usuario' }}</h3>
+          <p>{{ currentUser?.email }}</p>
+          <div class="login-method">
+            <span *ngIf="currentUser?.loginMethod === 'google'">🔵 Conectado con Google</span>
+            <span *ngIf="currentUser?.loginMethod === 'github'">⚫ Conectado con GitHub</span>
+            <span *ngIf="currentUser?.loginMethod === 'web3'">🟠 Conectado con MetaMask</span>
+          </div>
         </div>
-        <div class="info-item">
-          <span class="info-label">Estado:</span>
-          <span class="info-value status-connected">Conectado</span>
+      </div>
+
+      <!-- Información de red y wallet -->
+      <div class="network-wallet-info">
+        
+        <!-- Para usuarios con MetaMask conectado -->
+        <div *ngIf="account" class="wallet-connected">
+          <div class="wallet-header">
+            <h4>🦊 Wallet Conectada</h4>
+          </div>
+          <div class="wallet-details">
+            <div class="info-row">
+              <span class="label">Dirección:</span>
+              <span class="value">{{ account | slice:0:18 }}...{{ account | slice:-4 }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Red:</span>
+              <span class="value">{{ getNetworkName(chainId!) }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Saldo:</span>
+              <span class="value" [class.loading]="isLoadingBalance">
+                <span *ngIf="!isLoadingBalance">{{ balance }} ETH</span>
+                <span *ngIf="isLoadingBalance" class="loading-text">Actualizando... ⏳</span>
+              </span>
+              <button (click)="refreshBalance()" class="refresh-btn" [disabled]="isLoadingBalance">
+                <span *ngIf="!isLoadingBalance">🔄</span>
+                <span *ngIf="isLoadingBalance" class="spinner">⏳</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Para usuarios sin MetaMask -->
+        <div *ngIf="!account" class="network-selection">
+          <div class="network-header">
+            <h4>🌐 Configuración de Red</h4>
+          </div>
+          <div class="network-details">
+            <div class="info-row">
+              <span class="label">Red seleccionada:</span>
+              <select 
+                [(ngModel)]="selectedNetwork" 
+                (change)="changeNetwork(selectedNetwork)"
+                class="network-selector">
+                <option value="holesky">🟢 Holešky (Recomendado)</option>
+                <option value="sepolia">🔵 Sepolia</option>
+                <option value="goerli">🟡 Goerli</option>
+                <option value="ephemery">🟣 Ephemery</option>
+              </select>
+            </div>
+            <div class="info-row">
+              <span class="label">Límite de préstamo:</span>
+              <span class="value">{{ getNetworkLimit(selectedNetwork) }} ETH</span>
+            </div>
+            <div class="network-note">
+              <p>💡 <strong>Nota:</strong> Para realizar transacciones blockchain, necesitas conectar MetaMask.</p>
+              <button 
+                (click)="connectMetaMask()" 
+                class="connect-metamask-btn">
+                🦊 Conectar MetaMask
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Estado general -->
+        <div class="status-info">
+          <div class="status-item">
+            <span class="status-icon">✅</span>
+            <span class="status-text">Cuenta verificada</span>
+          </div>
+          <div class="status-item" *ngIf="account">
+            <span class="status-icon">🔗</span>
+            <span class="status-text">Wallet conectada</span>
+          </div>
+          <div class="status-item" *ngIf="!account">
+            <span class="status-icon">⚠️</span>
+            <span class="status-text">Wallet no conectada</span>
+          </div>
         </div>
       </div>
     </div>
@@ -45,6 +131,25 @@
           <h3>Inicio</h3>
           <p>Regresa a la página principal de la plataforma</p>
         </a>
+      </div>
+    </div>
+
+    <!-- Información específica para usuarios Google/GitHub -->
+    <div *ngIf="currentUser?.loginMethod !== 'web3'" class="info-section">
+      <h2>💡 ¿Cómo funciona para usuarios {{ currentUser?.loginMethod === 'google' ? 'Google' : 'GitHub' }}?</h2>
+      <div class="info-cards">
+        <div class="info-card card-gamer">
+          <h3>🌐 Selección de Red</h3>
+          <p>Puedes elegir la red blockchain donde se procesarán tus préstamos. Cada red tiene diferentes límites y características.</p>
+        </div>
+        <div class="info-card card-gamer">
+          <h3>🦊 MetaMask Opcional</h3>
+          <p>Puedes conectar MetaMask para ver tu saldo real y realizar transacciones directamente, pero no es obligatorio para solicitar préstamos.</p>
+        </div>
+        <div class="info-card card-gamer">
+          <h3>💰 Proceso de Préstamo</h3>
+          <p>Solicita préstamos sin necesidad de wallet. Nosotros nos encargamos de las transacciones blockchain por ti.</p>
+        </div>
       </div>
     </div>
 

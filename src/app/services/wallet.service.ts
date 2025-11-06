@@ -27,6 +27,28 @@ export class WalletService {
     return await window.ethereum.request({ method: 'eth_chainId' });
   }
 
+  async getBalance(address: string): Promise<string> {
+    if (!window.ethereum) return '0';
+    try {
+      const balance = await window.ethereum.request({
+        method: 'eth_getBalance',
+        params: [address, 'latest']
+      });
+      // Convertir de hex a decimal
+      return parseInt(balance, 16).toString();
+    } catch (error) {
+      console.error('Error obteniendo saldo:', error);
+      return '0';
+    }
+  }
+
+  // Función auxiliar para convertir Wei a ETH
+  weiToEth(weiValue: string): string {
+    const wei = BigInt(weiValue);
+    const eth = Number(wei) / Math.pow(10, 18);
+    return eth.toFixed(4);
+  }
+
   async signMessage(message: string): Promise<string> {
     if (!window.ethereum) throw new Error('MetaMask no está disponible');
     const accounts = await this.getAccounts();
@@ -76,6 +98,17 @@ export class WalletService {
         },
         rpcUrls: ['https://goerli.infura.io/v3/'],
         blockExplorerUrls: ['https://goerli.etherscan.io/']
+      },
+      'hoodi':{
+        chainId: '0x88bb0',
+        chainName: 'Ethereum Hoodi ',
+        nativeCurrency:{
+          name:'Ethereun Hoodi ',
+          symbol:'ETH',
+          decimals:'18'
+        },
+        rpcUrl:['https://hoodi.drpc.org'],
+        blockExporerUrls:['wss://hoodi.drpc.org']
       }
     };
 

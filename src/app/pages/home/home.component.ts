@@ -1,11 +1,14 @@
 import { Component, OnInit, DoCheck, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
+import { CommonModule } from '@angular/common';
 import { WalletService } from '../../services/wallet.service';
 import { APP_CONSTANTS } from '../../constants/app.constants';
 import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-home',
+  standalone: true,
+  imports: [CommonModule],
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.css']
 })

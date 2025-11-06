@@ -1,13 +1,18 @@
-import { Component, Input, OnInit, Output, EventEmitter } from '@angular/core';
+import { Component, Input, OnInit, OnDestroy, Output, EventEmitter } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { BlockchainExplorerService, Transaction } from '../../services/blockchain-explorer.service';
+import { WalletService } from '../../services/wallet.service';
+import { NotificationService } from '../../services/notification/notification.service';
 import { LoanRequest } from '../../interfaces/loan.interface';
 
 @Component({
   selector: 'app-transaction-viewer',
+  standalone: true,
+  imports: [CommonModule],
   templateUrl: './transaction-viewer.component.html',
   styleUrls: ['./transaction-viewer.component.css']
 })
-export class TransactionViewerComponent implements OnInit {
+export class TransactionViewerComponent implements OnInit, OnDestroy {
   @Input() loan!: LoanRequest;
   @Input() isVisible: boolean = false;
   @Output() close = new EventEmitter<void>();
@@ -16,17 +21,35 @@ export class TransactionViewerComponent implements OnInit {
   filteredTransactions: Transaction[] = [];
   isLoading: boolean = false;
   error: string = '';
+  
+  // Para detectar cambios de red
+  currentChainId: string | null = null;
+  currentNetwork: string = '';
+  
+  // Para manejar los listeners de MetaMask
+  private chainChangedListener: any;
 
-  constructor(private blockchainExplorer: BlockchainExplorerService) {}
+  constructor(
+    private blockchainExplorer: BlockchainExplorerService,
+    private walletService: WalletService,
+    private notificationService: NotificationService
+  ) {}
 
   ngOnInit() {
+    this.setupMetaMaskListeners();
+    this.detectCurrentNetwork();
     if (this.isVisible && this.loan) {
       this.loadTransactions();
     }
   }
 
+  ngOnDestroy() {
+    this.removeMetaMaskListeners();
+  }
+
   ngOnChanges() {
     if (this.isVisible && this.loan) {
+      this.detectCurrentNetwork();
       this.loadTransactions();
     }
   }
@@ -246,5 +269,128 @@ export class TransactionViewerComponent implements OnInit {
     }
     
     console.log('=====================================');
+  }
+
+  // Detectar la red actual de MetaMask
+  private async detectCurrentNetwork() {
+    try {
+      if (this.isMetaMaskAvailable()) {
+        this.currentChainId = await this.walletService.getChainId();
+        this.currentNetwork = this.getNetworkKeyFromChainId(this.currentChainId);
+        console.log(`Red actual detectada: ${this.currentNetwork} (${this.currentChainId})`);
+      }
+    } catch (error) {
+      console.log('No se pudo detectar la red actual:', error);
+    }
+  }
+
+  // Configurar listeners para detectar cambios en MetaMask
+  private setupMetaMaskListeners(): void {
+    if (this.isMetaMaskAvailable() && window.ethereum) {
+      // Listener para cambios de red
+      this.chainChangedListener = async (chainId: string) => {
+        console.log('Red cambiada en transaction viewer a:', chainId);
+        const oldChainId = this.currentChainId;
+        const oldNetwork = this.currentNetwork;
+        
+        this.currentChainId = chainId;
+        this.currentNetwork = this.getNetworkKeyFromChainId(chainId);
+        
+        // Mostrar notificación del cambio de red
+        const networkName = this.getNetworkName(chainId);
+        this.notificationService.addNotification(
+          'info', 
+          `🌐 Red cambiada a: ${networkName}`
+        );
+        
+        // Si el modal está visible y la red cambió, verificar si necesita recargar
+        if (this.isVisible && this.loan) {
+          if (this.currentNetwork !== this.loan.network) {
+            this.notificationService.addNotification(
+              'warning', 
+              `⚠️ La red actual (${networkName}) no coincide con la red del préstamo (${this.loan.network.toUpperCase()})`
+            );
+          } else {
+            // Si coincide con la red del préstamo, recargar transacciones
+            this.notificationService.addNotification(
+              'success', 
+              `🔄 Recargando transacciones para red: ${networkName}`
+            );
+            await this.loadTransactions();
+          }
+        }
+      };
+
+      // Registrar el listener
+      window.ethereum.on('chainChanged', this.chainChangedListener);
+    }
+  }
+
+  // Remover listeners al destruir el componente
+  private removeMetaMaskListeners(): void {
+    if (this.isMetaMaskAvailable() && window.ethereum) {
+      if (this.chainChangedListener) {
+        window.ethereum.removeListener('chainChanged', this.chainChangedListener);
+      }
+    }
+  }
+
+  // Verificar si MetaMask está disponible
+  private isMetaMaskAvailable(): boolean {
+    return typeof window !== 'undefined' && typeof window.ethereum !== 'undefined';
+  }
+
+  // Obtener la clave de red desde el chainId
+  private getNetworkKeyFromChainId(chainId: string): string {
+    const chainIdToNetworkMap: { [key: string]: string } = {
+      '0x1': 'mainnet',
+      '0x5': 'goerli',
+      '0xaa36a7': 'sepolia',
+      '0x4268': 'holesky',
+      '0x1a4': 'ephemery',
+      '0x88bb0': 'hoodi'
+    };
+    
+    return chainIdToNetworkMap[chainId] || 'unknown';
+  }
+
+  // Obtener nombre de red mejorado
+  private getNetworkName(chainId: string): string {
+    const chainIdMap: { [key: string]: string } = {
+      '0x1': 'Ethereum Mainnet',
+      '0x5': 'Goerli',
+      '0xaa36a7': 'Sepolia',
+      '0x4268': 'Holešky',
+      '0x1a4': 'Ephemery',
+      '0x88bb0': 'Ethereum Hoodi',
+      '0x89': 'Polygon Mainnet',
+      '0x13881': 'Polygon Mumbai',
+      '0xa86a': 'Avalanche Mainnet',
+      '0xa869': 'Avalanche Fuji'
+    };
+    
+    return chainIdMap[chainId] || `Red Desconocida (${chainId})`;
+  }
+
+  // Verificar si la red actual coincide con la del préstamo
+  isNetworkMatching(): boolean {
+    return this.currentNetwork === this.loan?.network;
+  }
+
+  // Obtener mensaje de estado de red
+  getNetworkStatusMessage(): string {
+    if (!this.currentNetwork || this.currentNetwork === 'unknown') {
+      return 'Red no detectada';
+    }
+    
+    if (!this.loan?.network) {
+      return `Red actual: ${this.getNetworkName(this.currentChainId!)}`;
+    }
+    
+    if (this.isNetworkMatching()) {
+      return `✅ Red coincide: ${this.getNetworkName(this.currentChainId!)}`;
+    } else {
+      return `⚠️ Red actual: ${this.getNetworkName(this.currentChainId!)} | Préstamo: ${this.loan.network.toUpperCase()}`;
+    }
   }
 }

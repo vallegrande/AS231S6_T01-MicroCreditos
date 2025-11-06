@@ -1,19 +1,25 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { WalletService } from '../../services/wallet.service';
 import { LoanService } from '../../services/loan/loan.service';
 import { ContractService } from '../../services/contract/contract.service';
 import { StudentVerificationService } from '../../services/student-verification.service';
+import { NotificationService } from '../../services/notification/notification.service';
 import { APP_CONSTANTS } from '../../constants/app.constants';
 import { LoanRequest } from '../../interfaces/loan.interface';
+import { TransactionViewerComponent } from '../../shared/transaction-viewer/transaction-viewer.component';
 import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-admin',
+  standalone: true,
+  imports: [CommonModule, FormsModule, TransactionViewerComponent],
   templateUrl: './admin.component.html',
   styleUrls: ['./admin.component.css']
 })
-export class AdminComponent implements OnInit {
+export class AdminComponent implements OnInit, OnDestroy {
   allLoans: LoanRequest[] = [];
   pendingLoans: LoanRequest[] = [];
   approvedLoans: LoanRequest[] = [];
@@ -22,6 +28,8 @@ export class AdminComponent implements OnInit {
   paymentPendingLoans: LoanRequest[] = [];
   
   account: string | null = null;
+  chainId: string | null = null;
+  currentNetwork: string = '';
   isAdmin: boolean = false;
   isLoading: boolean = true;
   isApproving: boolean = false;
@@ -29,6 +37,7 @@ export class AdminComponent implements OnInit {
   
   // Filtros
   filterStatus: string = 'all';
+  filterNetwork: string = 'all'; // Nuevo filtro por red
   searchTerm: string = '';
   filteredLoans: LoanRequest[] = [];
   
@@ -38,18 +47,28 @@ export class AdminComponent implements OnInit {
   transactionView: 'admin' | 'client' = 'admin';
   showTransactionViewer: boolean = false;
   transactionViewerLoan: LoanRequest | null = null;
+  
+  // Para manejar los listeners de MetaMask
+  private accountsChangedListener: any;
+  private chainChangedListener: any;
 
   constructor(
     private walletService: WalletService,
     private loanService: LoanService,
     private contractService: ContractService,
     private studentVerificationService: StudentVerificationService,
+    private notificationService: NotificationService,
     private router: Router
   ) {}
 
   ngOnInit(): void {
     this.checkAdminAccess();
     this.loadAllLoans();
+    this.setupMetaMaskListeners();
+  }
+
+  ngOnDestroy(): void {
+    this.removeMetaMaskListeners();
   }
 
   async checkAdminAccess(): Promise<void> {
@@ -57,6 +76,9 @@ export class AdminComponent implements OnInit {
       const accounts = await this.walletService.getAccounts();
       if (accounts && accounts.length > 0) {
         this.account = accounts[0];
+        this.chainId = await this.walletService.getChainId();
+        this.currentNetwork = this.getNetworkKeyFromChainId(this.chainId);
+        
         this.isAdmin = APP_CONSTANTS.ADMIN_ADDRESSES.some(
           adminAddr => adminAddr.toLowerCase() === this.account!.toLowerCase()
         );
@@ -116,6 +138,11 @@ export class AdminComponent implements OnInit {
     // Filtrar por estado
     if (this.filterStatus !== 'all') {
       filtered = filtered.filter(loan => loan.status === this.filterStatus);
+    }
+    
+    // Filtrar por red
+    if (this.filterNetwork !== 'all') {
+      filtered = filtered.filter(loan => loan.network === this.filterNetwork);
     }
     
     // Filtrar por término de búsqueda
@@ -528,5 +555,162 @@ export class AdminComponent implements OnInit {
     this.transactionViewerLoan = null;
   }
 
+  // Configurar listeners para detectar cambios en MetaMask
+  private setupMetaMaskListeners(): void {
+    if (this.isMetaMaskAvailable() && window.ethereum) {
+      // Listener para cambios de cuenta
+      this.accountsChangedListener = async (accounts: string[]) => {
+        console.log('Cuentas cambiadas en admin:', accounts);
+        if (accounts.length === 0) {
+          // Usuario desconectó MetaMask
+          this.account = null;
+          this.chainId = null;
+          this.currentNetwork = '';
+          this.notificationService.addNotification(
+            'warning', 
+            '⚠️ MetaMask desconectado - Redirigiendo al login'
+          );
+          this.router.navigate(['/login']);
+        } else if (accounts[0] !== this.account) {
+          // Usuario cambió de cuenta
+          const oldAccount = this.account;
+          this.account = accounts[0];
+          
+          // Verificar si la nueva cuenta es admin
+          this.isAdmin = APP_CONSTANTS.ADMIN_ADDRESSES.some(
+            adminAddr => adminAddr.toLowerCase() === this.account!.toLowerCase()
+          );
+          
+          if (!this.isAdmin) {
+            this.notificationService.addNotification(
+              'error', 
+              '❌ La nueva cuenta no tiene permisos de administrador'
+            );
+            this.router.navigate(['/client/dashboard']);
+            return;
+          }
+          
+          this.notificationService.addNotification(
+            'info', 
+            `🔄 Cuenta de admin cambiada: ...${accounts[0].slice(-4)}`
+          );
+          
+          // Recargar préstamos con la nueva cuenta
+          await this.loadAllLoans();
+        }
+      };
+
+      // Listener para cambios de red
+      this.chainChangedListener = async (chainId: string) => {
+        console.log('Red cambiada en admin a:', chainId);
+        const oldChainId = this.chainId;
+        const oldNetwork = this.currentNetwork;
+        
+        this.chainId = chainId;
+        this.currentNetwork = this.getNetworkKeyFromChainId(chainId);
+        
+        // Mostrar notificación del cambio de red
+        const networkName = this.getNetworkName(chainId);
+        this.notificationService.addNotification(
+          'info', 
+          `🌐 Red cambiada a: ${networkName}`
+        );
+        
+        // Actualizar filtro de red automáticamente a la red actual
+        if (this.currentNetwork && this.currentNetwork !== 'unknown') {
+          this.filterNetwork = this.currentNetwork;
+          this.notificationService.addNotification(
+            'success', 
+            `🔍 Filtro actualizado a red: ${this.getNetworkLabel(this.currentNetwork)}`
+          );
+        }
+        
+        // Recargar y filtrar préstamos
+        await this.loadAllLoans();
+      };
+
+      // Registrar los listeners
+      window.ethereum.on('accountsChanged', this.accountsChangedListener);
+      window.ethereum.on('chainChanged', this.chainChangedListener);
+    }
+  }
+
+  // Remover listeners al destruir el componente
+  private removeMetaMaskListeners(): void {
+    if (this.isMetaMaskAvailable() && window.ethereum) {
+      if (this.accountsChangedListener) {
+        window.ethereum.removeListener('accountsChanged', this.accountsChangedListener);
+      }
+      if (this.chainChangedListener) {
+        window.ethereum.removeListener('chainChanged', this.chainChangedListener);
+      }
+    }
+  }
+
+  // Verificar si MetaMask está disponible
+  private isMetaMaskAvailable(): boolean {
+    return typeof window !== 'undefined' && typeof window.ethereum !== 'undefined';
+  }
+
+  // Obtener la clave de red desde el chainId
+  private getNetworkKeyFromChainId(chainId: string): string {
+    const chainIdToNetworkMap: { [key: string]: string } = {
+      '0x1': 'mainnet',
+      '0x5': 'goerli',
+      '0xaa36a7': 'sepolia',
+      '0x4268': 'holesky',
+      '0x1a4': 'ephemery',
+      '0x88bb0': 'hoodi'
+    };
+    
+    return chainIdToNetworkMap[chainId] || 'unknown';
+  }
+
+  // Obtener nombre de red mejorado
+  getNetworkName(chainId: string): string {
+    const chainIdMap: { [key: string]: string } = {
+      '0x1': 'Ethereum Mainnet',
+      '0x5': 'Goerli',
+      '0xaa36a7': 'Sepolia',
+      '0x4268': 'Holešky',
+      '0x1a4': 'Ephemery',
+      '0x88bb0': 'Ethereum Hoodi',
+      '0x89': 'Polygon Mainnet',
+      '0x13881': 'Polygon Mumbai',
+      '0xa86a': 'Avalanche Mainnet',
+      '0xa869': 'Avalanche Fuji'
+    };
+    
+    return chainIdMap[chainId] || `Red Desconocida (${chainId})`;
+  }
+
+  // Obtener todas las redes disponibles para el filtro
+  getAvailableNetworks(): string[] {
+    const networks = new Set<string>();
+    this.allLoans.forEach(loan => {
+      if (loan.network) {
+        networks.add(loan.network);
+      }
+    });
+    return Array.from(networks).sort();
+  }
+
+  // Función para cambiar el filtro de red automáticamente
+  setNetworkFilter(network: string): void {
+    this.filterNetwork = network;
+    this.applyFilter();
+    
+    if (network === 'all') {
+      this.notificationService.addNotification(
+        'info', 
+        '🔍 Mostrando préstamos de todas las redes'
+      );
+    } else {
+      this.notificationService.addNotification(
+        'info', 
+        `🔍 Filtrando préstamos de red: ${this.getNetworkLabel(network)}`
+      );
+    }
+  }
 
 }

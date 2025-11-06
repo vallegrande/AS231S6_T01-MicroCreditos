@@ -6,6 +6,65 @@
         <h1>Mis Préstamos</h1>
         <p class="loans-subtitle">Historial completo de tus solicitudes de préstamo</p>
       </div>
+
+      <!-- Filtros -->
+      <div class="filters-container">
+        <div class="filter-group">
+          <label for="statusFilter">Filtrar por estado:</label>
+          <select 
+            id="statusFilter" 
+            [(ngModel)]="filterStatus" 
+            (change)="applyFilters()" 
+            class="form-control">
+            <option value="all">Todos los estados</option>
+            <option value="pending">Pendientes</option>
+            <option value="approved">Aprobados</option>
+            <option value="rejected">Rechazados</option>
+            <option value="paid">Pagados</option>
+            <option value="payment_pending">Pago Pendiente</option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <label for="networkFilter">Filtrar por red:</label>
+          <select 
+            id="networkFilter" 
+            [(ngModel)]="filterNetwork" 
+            (change)="applyFilters()" 
+            class="form-control">
+            <option value="all">Todas las redes</option>
+            <option *ngFor="let network of getAvailableNetworks()" [value]="network">
+              {{ getNetworkLabel(network) }}
+            </option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <label for="searchInput">Buscar:</label>
+          <input 
+            type="text" 
+            id="searchInput" 
+            [(ngModel)]="searchTerm" 
+            (input)="applyFilters()" 
+            placeholder="ID, nombre, dirección..." 
+            class="form-control">
+        </div>
+      </div>
+
+      <!-- Información de filtrado -->
+      <div *ngIf="account && chainId" class="filter-summary">
+        <div class="summary-content">
+          <div class="summary-icon">
+            <i class="fas fa-info-circle"></i>
+          </div>
+          <div class="summary-text">
+            {{ getFilterSummary() }}
+            <span *ngIf="currentNetwork && currentNetwork !== 'unknown'" class="current-network-info">
+              en {{ getNetworkName(chainId) }}
+            </span>
+          </div>
+        </div>
+      </div>
       
       <!-- Mensaje de error -->
       <div *ngIf="error" class="alert alert-danger">
