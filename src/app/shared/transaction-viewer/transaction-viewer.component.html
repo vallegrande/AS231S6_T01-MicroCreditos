@@ -86,20 +86,17 @@
 
       <!-- Error State -->
       <div *ngIf="error && !isLoading" class="error-state">
-        <i class="fas fa-exclamation-triangle"></i>
-        <p>{{ error }}</p>
-        <button class="btn btn-primary" (click)="loadTransactions()">
-          <i class="fas fa-redo"></i>
-          Reintentar
-        </button>
-        <button class="btn btn-secondary" (click)="loadDemoTransactions()">
-          <i class="fas fa-flask"></i>
-          Ver Demo
-        </button>
-        <button class="btn btn-info" (click)="testUrls()">
-          <i class="fas fa-link"></i>
-          Probar URLs
-        </button>
+        <div class="error-icon">
+          <i class="fas fa-info-circle"></i>
+        </div>
+        <div class="error-content">
+          <h4 class="error-title">Información sobre Transacciones</h4>
+          <p class="error-message">{{ error }}</p>
+          <div class="error-hint">
+            <i class="fas fa-lightbulb"></i>
+            <span>Los nuevos préstamos creados con la integración blockchain mostrarán sus transacciones automáticamente.</span>
+          </div>
+        </div>
       </div>
 
       <!-- Transactions List -->

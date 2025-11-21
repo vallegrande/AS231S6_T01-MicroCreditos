@@ -6,8 +6,28 @@
       <div class="nav-subtitle">Blockchain Microcredits</div>
     </div>
     
-    <!-- Menú de navegación -->
-    <ul class="nav-menu">
+    <!-- Toggle de menú móvil -->
+    <button class="mobile-menu-toggle" (click)="toggleMobileMenu()" [attr.aria-label]="mobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'">
+      <span class="mobile-menu-toggle-icon">{{ mobileMenuOpen ? '✕' : '☰' }}</span>
+    </button>
+    
+    <!-- Sección de autenticación (visible en desktop) -->
+    <div class="nav-auth">
+      <!-- Toggle de tema -->
+      <button class="theme-toggle" (click)="toggleTheme()" [attr.aria-label]="themeService.isDarkMode() ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'">
+        <span class="theme-icon" [class.dark]="themeService.isDarkMode()">
+          {{ themeService.isDarkMode() ? '🌙' : '☀️' }}
+        </span>
+      </button>
+      
+      <!-- Componente de perfil de usuario -->
+      <app-user-profile></app-user-profile>
+    </div>
+    
+    <!-- Menú móvil -->
+    <div class="mobile-menu" [class.open]="mobileMenuOpen">
+      <!-- Menú de navegación -->
+      <ul class="nav-menu">
       <!-- Menú de landing page (solo para visitantes y clientes, NO para admin) -->
       <ng-container *ngIf="!isAdmin">
         <li class="nav-item">
@@ -85,19 +105,88 @@
           </a>
         </li>
       </ng-container>
-    </ul>
-    
-    <!-- Sección de autenticación -->
-    <div class="nav-auth">
-      <!-- Toggle de tema -->
-      <button class="theme-toggle" (click)="toggleTheme()" [attr.aria-label]="themeService.isDarkMode() ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'">
-        <span class="theme-icon" [class.dark]="themeService.isDarkMode()">
-          {{ themeService.isDarkMode() ? '🌙' : '☀️' }}
-        </span>
-      </button>
-      
-      <!-- Componente de perfil de usuario -->
-      <app-user-profile></app-user-profile>
+      </ul>
     </div>
+    
+    <!-- Menú de navegación (desktop - oculto en móvil) -->
+    <ul class="nav-menu">
+      <!-- Menú de landing page (solo para visitantes y clientes, NO para admin) -->
+      <ng-container *ngIf="!isAdmin">
+        <li class="nav-item">
+          <a [routerLink]="account ? '/client/home' : '/home'" class="nav-link" routerLinkActive="active" (click)="closeMobileMenu()">
+            <span class="nav-icon">🏠</span>
+            <span class="nav-text">Inicio</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a [routerLink]="account ? '/client/descripcion' : '/descripcion'" class="nav-link" routerLinkActive="active" (click)="closeMobileMenu()">
+            <span class="nav-icon">📋</span>
+            <span class="nav-text">Descripción</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a [routerLink]="account ? '/client/objetivos' : '/objetivos'" class="nav-link" routerLinkActive="active" (click)="closeMobileMenu()">
+            <span class="nav-icon">🎯</span>
+            <span class="nav-text">Objetivos</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a [routerLink]="account ? '/client/beneficios' : '/beneficios'" class="nav-link" routerLinkActive="active" (click)="closeMobileMenu()">
+            <span class="nav-icon">✨</span>
+            <span class="nav-text">Beneficios</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a [routerLink]="account ? '/client/caracteristicas' : '/caracteristicas'" class="nav-link" routerLinkActive="active" (click)="closeMobileMenu()">
+            <span class="nav-icon">⚡</span>
+            <span class="nav-text">Características</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a [routerLink]="account ? '/client/equipo' : '/equipo'" class="nav-link" routerLinkActive="active" (click)="closeMobileMenu()">
+            <span class="nav-icon">👥</span>
+            <span class="nav-text">Equipo</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a [routerLink]="account ? '/client/soporte' : '/soporte'" class="nav-link" routerLinkActive="active" (click)="closeMobileMenu()">
+            <span class="nav-icon">🛠️</span>
+            <span class="nav-text">Soporte</span>
+          </a>
+        </li>
+      </ng-container>
+      
+      <!-- Menú para clientes conectados (NO admin) -->
+      <ng-container *ngIf="account && !isAdmin">
+        <li class="nav-item">
+          <a routerLink="/client/solicitar-prestamo" class="nav-link" routerLinkActive="active" (click)="closeMobileMenu()">
+            <span class="nav-icon">💰</span>
+            <span class="nav-text">Solicitar Préstamo</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a routerLink="/client/mis-prestamos" class="nav-link" routerLinkActive="active" (click)="closeMobileMenu()">
+            <span class="nav-icon">📊</span>
+            <span class="nav-text">Mis Préstamos</span>
+          </a>
+        </li>
+      </ng-container>
+      
+      <!-- Menú exclusivo para administradores -->
+      <ng-container *ngIf="isAdmin">
+        <li class="nav-item">
+          <a routerLink="/admin" class="nav-link admin-link" routerLinkActive="active" (click)="closeMobileMenu()">
+            <span class="nav-icon">👑</span>
+            <span class="nav-text">Panel Admin</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a routerLink="/home" class="nav-link" routerLinkActive="active" (click)="closeMobileMenu()">
+            <span class="nav-icon">🏠</span>
+            <span class="nav-text">Inicio</span>
+          </a>
+        </li>
+      </ng-container>
+    </ul>
   </div>
 </nav>

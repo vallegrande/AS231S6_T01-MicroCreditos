@@ -68,14 +68,14 @@ export class WalletService {
     const networkParams: { [key: string]: any } = {
       'holesky': {
         chainId: '0x4268', // 17000 in hex
-        chainName: 'Holešky',
+        chainName: 'Holesky',
         nativeCurrency: {
-          name: 'Holešky ETH',
+          name: 'Holesky ETH',
           symbol: 'ETH',
           decimals: 18
         },
-        rpcUrls: ['https://holesky.infura.io/v3/'],
-        blockExplorerUrls: ['https://holesky.etherscan.io/']
+        rpcUrls: ['https://holesky.drpc.org'],
+        blockExplorerUrls: ['https://eth-holesky.blockscout.com']
       },
       'sepolia': {
         chainId: '0xaa36a7', // 11155111 in hex
@@ -85,8 +85,8 @@ export class WalletService {
           symbol: 'ETH',
           decimals: 18
         },
-        rpcUrls: ['https://sepolia.infura.io/v3/'],
-        blockExplorerUrls: ['https://sepolia.etherscan.io/']
+        rpcUrls: ['https://sepolia.drpc.org'],
+        blockExplorerUrls: ['https://eth-sepolia.blockscout.com']
       },
       'goerli': {
         chainId: '0x5', // 5 in hex
@@ -108,7 +108,7 @@ export class WalletService {
           decimals:'18'
         },
         rpcUrl:['https://hoodi.drpc.org'],
-        blockExporerUrls:['wss://hoodi.drpc.org']
+        blockExporerUrls:['wss://hoodi.etherscan.io']
       }
     };
 

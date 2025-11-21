@@ -29,7 +29,8 @@ export class BlockchainExplorerService {
         holesky: '8HY7XBZ8IWXVXZHZFRTYKVSID2PNKU2SZ7',
         sepolia: '8HY7XBZ8IWXVXZHZFRTYKVSID2PNKU2SZ7',
         goerli: '8HY7XBZ8IWXVXZHZFRTYKVSID2PNKU2SZ7',
-        mainnet: '8HY7XBZ8IWXVXZHZFRTYKVSID2PNKU2SZ7'
+        mainnet: '8HY7XBZ8IWXVXZHZFRTYKVSID2PNKU2SZ7',
+        hoodi: 'HOODI_API_KEY' // Placeholder - reemplazar con la API key real de Hoodi
     };
 
     private readonly EXPLORER_URLS = {
@@ -48,6 +49,10 @@ export class BlockchainExplorerService {
         mainnet: {
             api: 'https://api.etherscan.io/api',
             explorer: 'https://etherscan.io'
+        },
+        hoodi: {
+            api: 'https://api.hoodiscan.com/api',
+            explorer: 'https://explorer.hoodiscan.com'
         }
     };
 

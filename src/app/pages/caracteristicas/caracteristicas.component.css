@@ -2,22 +2,30 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;
+  background: var(--bg-primary);
+  min-height: 100vh;
 }
 
 .page-header {
   text-align: center;
   margin-bottom: 3rem;
+  padding: 2rem 0;
 }
 
 .page-header h1 {
-  color: #2c3e50;
   font-size: 2.5rem;
+  font-weight: 800;
   margin-bottom: 1rem;
+  background: linear-gradient(135deg, var(--primary-cyan), var(--primary-purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .subtitle {
   font-size: 1.2rem;
-  color: #7f8c8d;
+  color: var(--text-secondary);
+  font-weight: 500;
 }
 
 .technical-features, .user-features {
@@ -27,7 +35,9 @@
 .technical-features h2, .user-features h2 {
   text-align: center;
   margin-bottom: 2rem;
-  color: #2c3e50;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 .features-grid {
@@ -37,32 +47,73 @@
 }
 
 .feature-card {
-  background: white;
+  background: var(--bg-card);
   padding: 2rem;
-  border-radius: 10px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-  transition: transform 0.3s;
+  border-radius: var(--border-radius-lg);
+  border: var(--border-medium);
+  box-shadow: var(--shadow-subtle);
+  transition: var(--transition-normal);
+  backdrop-filter: blur(20px);
+}
+
+[data-theme="dark"] .feature-card {
+  background: rgba(26, 26, 46, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="light"] .feature-card {
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .feature-card:hover {
   transform: translateY(-5px);
+  box-shadow: var(--shadow-medium);
+  border-color: var(--primary-cyan);
 }
 
 .feature-card h3 {
   margin-top: 0;
-  color: #3498db;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--primary-cyan), var(--primary-purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.feature-card p {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
 }
 
 .technology-stack {
-  background: #f8f9fa;
+  background: var(--bg-card);
   padding: 3rem;
-  border-radius: 10px;
+  border-radius: var(--border-radius-xl);
+  border: var(--border-medium);
+  box-shadow: var(--shadow-subtle);
+  backdrop-filter: blur(20px);
+}
+
+[data-theme="dark"] .technology-stack {
+  background: rgba(26, 26, 46, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="light"] .technology-stack {
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .technology-stack h2 {
   text-align: center;
   margin-bottom: 2rem;
-  color: #2c3e50;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 .tech-stack-content {
@@ -72,9 +123,12 @@
 }
 
 .tech-category h3 {
-  color: #3498db;
-  border-bottom: 2px solid #3498db;
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--primary-cyan);
   padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 1.35rem;
+  font-weight: 700;
 }
 
 .tech-category ul {
@@ -83,8 +137,9 @@
 }
 
 .tech-category li {
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #eee;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
 }
 
 .tech-category li:last-child {
@@ -93,6 +148,78 @@
 
 .tech-category li:before {
   content: "• ";
-  color: #3498db;
+  color: var(--primary-cyan);
   font-weight: bold;
+  font-size: 1.2rem;
+  margin-right: 0.5rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .caracteristicas-container {
+    padding: 1.5rem 1rem;
+  }
+  
+  .page-header h1 {
+    font-size: 2rem;
+  }
+  
+  .technical-features h2,
+  .user-features h2,
+  .technology-stack h2 {
+    font-size: 1.75rem;
+  }
+  
+  .features-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .feature-card {
+    padding: 1.5rem;
+  }
+  
+  .technology-stack {
+    padding: 2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .caracteristicas-container {
+    padding: 1rem 0.75rem;
+  }
+  
+  .page-header {
+    padding: 1.5rem 0;
+  }
+  
+  .page-header h1 {
+    font-size: 1.75rem;
+  }
+  
+  .subtitle {
+    font-size: 1.05rem;
+  }
+  
+  .technical-features h2,
+  .user-features h2,
+  .technology-stack h2 {
+    font-size: 1.5rem;
+  }
+  
+  .feature-card {
+    padding: 1.25rem;
+  }
+  
+  .feature-card h3 {
+    font-size: 1.25rem;
+  }
+  
+  .technology-stack {
+    padding: 1.5rem;
+  }
+  
+  .tech-stack-content {
+    grid-template-columns: 1fr;
+  }
 }

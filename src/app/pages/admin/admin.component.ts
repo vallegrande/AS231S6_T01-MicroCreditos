@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WalletService } from '../../services/wallet.service';
 import { LoanService } from '../../services/loan/loan.service';
+import { SmartContractService } from '../../services/smart-contract.service';
 import { ContractService } from '../../services/contract/contract.service';
 import { StudentVerificationService } from '../../services/student-verification.service';
 import { NotificationService } from '../../services/notification/notification.service';
@@ -55,6 +56,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   constructor(
     private walletService: WalletService,
     private loanService: LoanService,
+    private smartContract: SmartContractService,
     private contractService: ContractService,
     private studentVerificationService: StudentVerificationService,
     private notificationService: NotificationService,
@@ -177,12 +179,12 @@ export class AdminComponent implements OnInit, OnDestroy {
           </div>
         `,
         confirmButtonText: 'Entendido',
-        confirmButtonColor: '#ef4444',
+        confirmButtonColor: 'transparent',
         background: 'var(--bg-card)',
         color: 'var(--text-primary)',
         customClass: {
           popup: 'swal-professional',
-          confirmButton: 'swal-btn'
+          confirmButton: 'swal-btn swal2-confirm-danger'
         }
       });
       return;
@@ -230,8 +232,8 @@ export class AdminComponent implements OnInit, OnDestroy {
       showCancelButton: true,
       confirmButtonText: '<i class="fas fa-check-circle"></i> Sí, Aprobar',
       cancelButtonText: '<i class="fas fa-times"></i> Cancelar',
-      confirmButtonColor: '#10b981',
-      cancelButtonColor: '#6b7280',
+      confirmButtonColor: 'transparent',
+      cancelButtonColor: 'transparent',
       background: 'var(--bg-card)',
       color: 'var(--text-primary)',
       customClass: {
@@ -243,14 +245,58 @@ export class AdminComponent implements OnInit, OnDestroy {
       allowOutsideClick: false,
       preConfirm: async () => {
         try {
-          console.log(`🚀 Iniciando aprobación de préstamo ${loan.id}...`);
+          console.log(`🚀 Iniciando aprobación de préstamo ${loan.id} en blockchain...`);
+          
+          // Verificar si el préstamo tiene ID de blockchain
+          const blockchainLoanId = loan.blockchainLoanId;
+          if (blockchainLoanId === undefined || blockchainLoanId === null) {
+            console.error('❌ Préstamo sin blockchain ID:', {
+              loanId: loan.id,
+              borrower: loan.borrowerName,
+              amount: loan.amount,
+              transactionHash: loan.transactionHash,
+              createdAt: loan.createdAt
+            });
+            throw new Error(
+              'Este préstamo no tiene ID de blockchain.\n\n' +
+              'Posibles causas:\n' +
+              '• El préstamo fue creado antes de la integración con blockchain\n' +
+              '• La transacción de creación falló o fue cancelada\n' +
+              '• El préstamo fue creado manualmente sin pasar por el smart contract\n\n' +
+              'Solución: El solicitante debe crear una nueva solicitud de préstamo.'
+            );
+          }
+          
+          console.log('✅ Préstamo con blockchain ID válido:', blockchainLoanId);
+          
+          // 1. Aprobar en el Smart Contract (BLOCKCHAIN)
+          const blockchainResult = await this.smartContract.approveLoan(
+            blockchainLoanId,
+            loan.amount.toString()
+          );
+          
+          if (!blockchainResult.success) {
+            throw new Error(blockchainResult.message || 'Error al aprobar en blockchain');
+          }
+          
+          // 2. Actualizar también localmente para mantener sincronización
           const approvalResult = await this.loanService.approveLoan(loan.id, this.account!);
           
           if (!approvalResult.success) {
-            throw new Error(approvalResult.message);
+            console.warn('⚠️ Préstamo aprobado en blockchain pero error al actualizar localmente');
           }
           
-          return approvalResult;
+          // 3. Agregar información de blockchain al préstamo local
+          const updatedLoan = this.loanService.getAllLoans().find(l => l.id === loan.id);
+          if (updatedLoan) {
+            updatedLoan.transactionHash = blockchainResult.txHash;
+          }
+          
+          return {
+            ...approvalResult,
+            txHash: blockchainResult.txHash,
+            blockchainSuccess: true
+          };
         } catch (error: any) {
           Swal.showValidationMessage(`Error: ${error?.message || 'Error desconocido'}`);
           return false;
@@ -279,12 +325,12 @@ export class AdminComponent implements OnInit, OnDestroy {
           </div>
         `,
         confirmButtonText: 'Entendido',
-        confirmButtonColor: '#10b981',
+        confirmButtonColor: 'transparent',
         background: 'var(--bg-card)',
         color: 'var(--text-primary)',
         customClass: {
           popup: 'swal-professional',
-          confirmButton: 'swal-btn'
+          confirmButton: 'swal-btn swal2-confirm-success'
         }
       });
       
@@ -295,17 +341,13 @@ export class AdminComponent implements OnInit, OnDestroy {
   }
 
   async rejectLoan(loanId: string): Promise<void> {
-    if (!this.account) return;
-    
-    try {
-      const success = await this.loanService.rejectLoan(loanId, this.account);
-      if (success) {
-        await this.loadAllLoans(); // Recargar la lista
-      }
-    } catch (error) {
-      this.error = 'Error al rechazar el préstamo';
-      console.error('Error rejecting loan:', error);
+    const loan = this.allLoans.find(l => l.id === loanId);
+    if (!loan) {
+      this.error = 'Préstamo no encontrado';
+      return;
     }
+    
+    await this.showRejectConfirmation(loan);
   }
 
   refreshLoans(): void {
@@ -330,14 +372,14 @@ export class AdminComponent implements OnInit, OnDestroy {
       showCancelButton: true,
       confirmButtonText: '<i class="fas fa-check"></i> Sí, Limpiar',
       cancelButtonText: '<i class="fas fa-times"></i> Cancelar',
-      confirmButtonColor: '#f59e0b',
-      cancelButtonColor: '#6b7280',
+      confirmButtonColor: 'transparent',
+      cancelButtonColor: 'transparent',
       background: 'var(--bg-card)',
       color: 'var(--text-primary)',
       customClass: {
         popup: 'swal-professional',
-        confirmButton: 'swal-btn swal-btn-warning',
-        cancelButton: 'swal-btn swal-btn-cancel'
+        confirmButton: 'swal-btn swal2-confirm-warning',
+        cancelButton: 'swal-btn swal2-cancel-custom'
       }
     });
     
@@ -369,12 +411,12 @@ export class AdminComponent implements OnInit, OnDestroy {
           </div>
         `,
         confirmButtonText: 'Entendido',
-        confirmButtonColor: '#10b981',
+        confirmButtonColor: 'transparent',
         background: 'var(--bg-card)',
         color: 'var(--text-primary)',
         customClass: {
           popup: 'swal-professional',
-          confirmButton: 'swal-btn'
+          confirmButton: 'swal-btn swal2-confirm-success'
         },
         timer: 3000,
         timerProgressBar: true
@@ -388,6 +430,16 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   getPurposeTypeLabel(purposeType: string): string {
     return APP_CONSTANTS.PURPOSE_TYPE_LABELS[purposeType as keyof typeof APP_CONSTANTS.PURPOSE_TYPE_LABELS] || purposeType;
+  }
+
+  getExplorerUrl(network: string, txHash: string): string {
+    const explorers: { [key: string]: string } = {
+      'holesky': 'https://holesky.etherscan.io/tx/',
+      'sepolia': 'https://sepolia.etherscan.io/tx/',
+      'goerli': 'https://goerli.etherscan.io/tx/',
+      'ephemery': 'https://explorer.ephemery.dev/tx/'
+    };
+    return (explorers[network] || explorers['holesky']) + txHash;
   }
 
   getNetworkLabel(network: string): string {
@@ -450,7 +502,7 @@ export class AdminComponent implements OnInit, OnDestroy {
       confirmButtonText: '<i class="fas fa-ban"></i> Rechazar Préstamo',
       cancelButtonText: '<i class="fas fa-times"></i> Cancelar',
       confirmButtonColor: '#ef4444',
-      cancelButtonColor: '#6b7280',
+      cancelButtonColor: 'transparent',
       background: 'var(--bg-card)',
       color: 'var(--text-primary)',
       customClass: {
@@ -472,11 +524,48 @@ export class AdminComponent implements OnInit, OnDestroy {
       allowOutsideClick: false,
       preConfirm: async (reason) => {
         try {
+          console.log(`🚀 Iniciando rechazo de préstamo ${loan.id} en blockchain...`);
+          
+          // Verificar si el préstamo tiene ID de blockchain
+          const blockchainLoanId = loan.blockchainLoanId;
+          if (!blockchainLoanId) {
+            // Si no tiene ID de blockchain, solo rechazar localmente
+            console.warn('⚠️ Préstamo no tiene ID de blockchain, rechazando solo localmente');
+            const success = await this.loanService.rejectLoan(loan.id, this.account!, reason);
+            if (!success) {
+              throw new Error('No se pudo rechazar el préstamo');
+            }
+            return { success: true, reason, blockchainSuccess: false };
+          }
+          
+          // 1. Rechazar en el Smart Contract (BLOCKCHAIN)
+          const blockchainResult = await this.smartContract.rejectLoan(
+            blockchainLoanId,
+            reason
+          );
+          
+          if (!blockchainResult.success) {
+            throw new Error(blockchainResult.message || 'Error al rechazar en blockchain');
+          }
+          
+          // 2. Actualizar también localmente
           const success = await this.loanService.rejectLoan(loan.id, this.account!, reason);
           if (!success) {
-            throw new Error('No se pudo rechazar el préstamo');
+            console.warn('⚠️ Préstamo rechazado en blockchain pero error al actualizar localmente');
           }
-          return { success: true, reason };
+          
+          // 3. Agregar información de blockchain al préstamo local
+          const updatedLoan = this.loanService.getAllLoans().find(l => l.id === loan.id);
+          if (updatedLoan) {
+            updatedLoan.transactionHash = blockchainResult.txHash;
+          }
+          
+          return {
+            success: true,
+            reason,
+            txHash: blockchainResult.txHash,
+            blockchainSuccess: true
+          };
         } catch (error: any) {
           Swal.showValidationMessage(`Error: ${error?.message || 'Error desconocido'}`);
           return false;
@@ -486,29 +575,49 @@ export class AdminComponent implements OnInit, OnDestroy {
     
     if (result.isConfirmed && result.value) {
       // Mostrar ventana de confirmación de rechazo
+      const explorerUrl = result.value.txHash 
+        ? this.getExplorerUrl(loan.network, result.value.txHash)
+        : null;
+      
       await Swal.fire({
-        icon: 'info',
-        title: 'Préstamo Rechazado',
+        icon: 'success',
+        title: result.value.blockchainSuccess ? '✅ Préstamo Rechazado en Blockchain' : 'Préstamo Rechazado',
         html: `
           <div class="rejection-success">
             <div class="rejection-animation">
               <i class="fas fa-check-circle" style="font-size: 3.5rem; color: #6b7280; animation: scaleIn 0.5s ease;"></i>
             </div>
-            <p style="font-size: 1.1rem; margin: 1.5rem 0;">El préstamo de <strong>${loan.borrowerName}</strong> ha sido rechazado.</p>
+            <p style="font-size: 1.1rem; margin: 1.5rem 0;">El préstamo de <strong>${loan.borrowerName}</strong> ha sido rechazado${result.value.blockchainSuccess ? ' en la blockchain' : ''}.</p>
             <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(239, 68, 68, 0.1); border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.3); text-align: left;">
               <p style="font-size: 0.85rem; color: #666; margin-bottom: 0.5rem; font-weight: 600;">Motivo del Rechazo:</p>
               <p style="font-size: 0.95rem; color: var(--text-primary);">${result.value.reason}</p>
             </div>
+            ${result.value.txHash ? `
+              <div style="margin-top: 1rem; padding: 1rem; background: rgba(0, 212, 255, 0.1); border-radius: 8px; border: 1px solid rgba(0, 212, 255, 0.3);">
+                <p style="font-size: 0.85rem; color: #666; margin-bottom: 0.5rem;">Hash de Transacción:</p>
+                <p style="font-family: monospace; font-size: 0.85rem; word-break: break-all; color: #00d4ff;">${result.value.txHash}</p>
+              </div>
+            ` : ''}
             <p style="color: #666; font-size: 0.85rem; margin-top: 1rem;">El solicitante será notificado sobre esta decisión.</p>
           </div>
         `,
-        confirmButtonText: 'Entendido',
-        confirmButtonColor: '#6b7280',
+        confirmButtonText: explorerUrl ? 'Ver en Explorador' : 'Entendido',
+        cancelButtonText: explorerUrl ? 'Cerrar' : undefined,
+        showCancelButton: !!explorerUrl,
+        confirmButtonColor: 'transparent',
         background: 'var(--bg-card)',
         color: 'var(--text-primary)',
         customClass: {
           popup: 'swal-professional',
-          confirmButton: 'swal-btn'
+          confirmButton: 'swal-btn swal2-cancel-custom'
+        },
+        didOpen: () => {
+          if (explorerUrl) {
+            const confirmBtn = Swal.getConfirmButton();
+            if (confirmBtn) {
+              confirmBtn.onclick = () => window.open(explorerUrl, '_blank');
+            }
+          }
         }
       });
       

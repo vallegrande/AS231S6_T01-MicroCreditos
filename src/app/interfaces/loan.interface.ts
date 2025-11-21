@@ -5,7 +5,7 @@ export interface LoanRequest {
   amount: number;
   purpose: string;
   purposeType: 'student' | 'business' | 'health' | 'events' | 'other';
-  network: 'goerli' | 'holesky' | 'sepolia' | 'ephemery';
+  network: 'goerli' | 'holesky' | 'sepolia' | 'ephemery' | 'hoodi';
   interestRate: number;
   status: 'pending' | 'approved' | 'rejected' | 'disbursed' | 'payment_pending' | 'paid'; // Agregamos nuevos estados
   createdAt: Date;
@@ -17,6 +17,8 @@ export interface LoanRequest {
   approvedBy?: string; // Dirección del administrador que aprobó el préstamo
   rejectedBy?: string; // Dirección del administrador que rechazó el préstamo
   rejectionReason?: string; // Motivo del rechazo del préstamo
+  transactionHash?: string; // Hash de la transacción en blockchain
+  blockchainLoanId?: number; // ID del préstamo en el smart contract
 }
 
 export interface NetworkConfig {

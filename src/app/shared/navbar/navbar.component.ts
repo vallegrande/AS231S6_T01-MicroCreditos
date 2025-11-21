@@ -18,6 +18,7 @@ export class NavbarComponent implements OnInit {
   chainId: string | null = null;
   isAdmin: boolean = false;
   isAdminView: boolean = false;
+  mobileMenuOpen: boolean = false;
 
   constructor(
     public themeService: ThemeService,
@@ -50,5 +51,13 @@ export class NavbarComponent implements OnInit {
 
   toggleTheme(): void {
     this.themeService.toggleTheme();
+  }
+
+  toggleMobileMenu(): void {
+    this.mobileMenuOpen = !this.mobileMenuOpen;
+  }
+
+  closeMobileMenu(): void {
+    this.mobileMenuOpen = false;
   }
 }

@@ -132,7 +132,10 @@ export class StudentVerificationComponent implements OnInit {
         `,
         icon: 'success',
         confirmButtonText: '👍 Continuar',
-        confirmButtonColor: '#059669',
+        confirmButtonColor: 'transparent',
+        customClass: {
+          confirmButton: 'swal2-confirm-success'
+        },
         allowOutsideClick: false
       });
 

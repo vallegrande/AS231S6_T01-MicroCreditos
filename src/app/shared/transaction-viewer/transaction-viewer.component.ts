@@ -59,54 +59,59 @@ export class TransactionViewerComponent implements OnInit, OnDestroy {
     this.error = '';
     
     try {
-      console.log(`Cargando transacciones para ${this.loan.borrowerAddress} en red ${this.loan.network}`);
+      console.log('=== DEBUG: Información del préstamo ===');
+      console.log('Préstamo ID:', this.loan.id);
+      console.log('Borrower:', this.loan.borrowerAddress);
+      console.log('Red:', this.loan.network);
+      console.log('Transaction Hash:', this.loan.transactionHash);
+      console.log('Blockchain Loan ID:', this.loan.blockchainLoanId);
+      console.log('=====================================');
       
-      const response = await this.blockchainExplorer.getTransactions(
-        this.loan.borrowerAddress, 
-        this.loan.network
-      ).toPromise();
-
-      console.log('Respuesta de la API:', response);
-
-      if (response && response.status === '1' && response.result) {
-        this.transactions = response.result;
-        console.log(`Se encontraron ${this.transactions.length} transacciones totales`);
+      // Primero, verificar si el préstamo tiene un hash de transacción guardado
+      if (this.loan.transactionHash && this.isValidTransactionHash(this.loan.transactionHash)) {
+        console.log(`✅ Préstamo tiene hash de transacción válido: ${this.loan.transactionHash}`);
         
-        this.filteredTransactions = this.blockchainExplorer.filterLoanTransactions(
-          this.transactions,
-          this.loan.amount,
-          this.loan.borrowerAddress
-        );
+        // Crear una transacción con los datos del préstamo
+        const loanTransaction: Transaction = {
+          hash: this.loan.transactionHash,
+          from: '0x430B607db26DB81c563d76756f1a3806889221F7', // Dirección del contrato o lender
+          to: this.loan.borrowerAddress,
+          value: (this.loan.amount * Math.pow(10, 18)).toString(),
+          timeStamp: Math.floor(this.loan.createdAt.getTime() / 1000).toString(),
+          blockNumber: '0',
+          gas: '21000',
+          gasPrice: '20000000000',
+          gasUsed: '21000',
+          isError: '0'
+        };
         
-        console.log(`Se filtraron ${this.filteredTransactions.length} transacciones relacionadas`);
+        this.filteredTransactions = [loanTransaction];
+        this.transactions = [loanTransaction];
         
-        if (this.filteredTransactions.length === 0 && this.transactions.length > 0) {
-          // Si hay transacciones pero ninguna coincide con el filtro, mostrar las más recientes
-          this.filteredTransactions = this.transactions.slice(0, 5);
-          console.log('Mostrando las 5 transacciones más recientes como fallback');
-        }
+        console.log(`✅ Mostrando transacción del préstamo:`, loanTransaction);
+      } else if (this.loan.transactionHash) {
+        console.warn(`⚠️ Hash de transacción inválido: ${this.loan.transactionHash}`);
+        console.warn(`   Longitud: ${this.loan.transactionHash.length} (esperado: 66)`);
+        this.error = `Este préstamo tiene un hash de transacción inválido (${this.loan.transactionHash.substring(0, 20)}...). Esto puede ocurrir con préstamos creados antes de la integración con blockchain.`;
       } else {
-        // Mostrar información más detallada del error
-        const errorMsg = response?.message || 'No se encontraron transacciones';
-        this.error = `${errorMsg}. Esto puede ser normal si es una dirección nueva o si las transacciones aún no se han confirmado.`;
-        console.log('Error en respuesta:', this.error);
+        console.warn(`⚠️ Este préstamo no tiene hash de transacción guardado`);
+        this.error = `Este préstamo no tiene un hash de transacción asociado. Esto puede ocurrir con préstamos creados antes de la integración con blockchain.`;
       }
     } catch (error: any) {
       console.error('Error loading transactions:', error);
-      
-      // Manejo específico de errores CORS
-      if (error.status === 0) {
-        this.error = 'Error de CORS: No se puede acceder a la API de Etherscan desde el navegador. Usando datos de demostración.';
-        // Intentar cargar datos de prueba como fallback
-        this.loadDemoTransactions();
-      } else if (error.status === 429) {
-        this.error = 'Demasiadas peticiones a la API. Por favor, espera un momento e intenta de nuevo.';
-      } else {
-        this.error = `Error al conectar con el explorador: ${error.message || 'Error desconocido'}`;
-      }
+      this.error = `Error al cargar transacciones: ${error.message || 'Error desconocido'}`;
     } finally {
       this.isLoading = false;
     }
+  }
+  
+  /**
+   * Validar que un hash de transacción sea válido
+   */
+  private isValidTransactionHash(hash: string): boolean {
+    // Un hash válido de Ethereum debe tener 66 caracteres (0x + 64 caracteres hexadecimales)
+    const hashRegex = /^0x[a-fA-F0-9]{64}$/;
+    return hashRegex.test(hash);
   }
 
   /**

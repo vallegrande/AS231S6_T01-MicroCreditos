@@ -2,22 +2,30 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;
+  background: var(--bg-primary);
+  min-height: 100vh;
 }
 
 .page-header {
   text-align: center;
   margin-bottom: 3rem;
+  padding: 2rem 0;
 }
 
 .page-header h1 {
-  color: #2c3e50;
   font-size: 2.5rem;
+  font-weight: 800;
   margin-bottom: 1rem;
+  background: linear-gradient(135deg, var(--primary-cyan), var(--primary-purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .subtitle {
   font-size: 1.2rem;
-  color: #7f8c8d;
+  color: var(--text-secondary);
+  font-weight: 500;
 }
 
 .main-objectives {
@@ -27,7 +35,9 @@
 .main-objectives h2 {
   text-align: center;
   margin-bottom: 2rem;
-  color: #2c3e50;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 .objectives-grid {
@@ -37,21 +47,48 @@
 }
 
 .objective-card {
-  background: white;
+  background: var(--bg-card);
   padding: 2rem;
-  border-radius: 10px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  border-radius: var(--border-radius-lg);
+  border: var(--border-medium);
+  box-shadow: var(--shadow-subtle);
   text-align: center;
-  transition: transform 0.3s;
+  transition: var(--transition-normal);
+  backdrop-filter: blur(20px);
+}
+
+[data-theme="dark"] .objective-card {
+  background: rgba(26, 26, 46, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="light"] .objective-card {
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .objective-card:hover {
   transform: translateY(-5px);
+  box-shadow: var(--shadow-medium);
+  border-color: var(--primary-cyan);
 }
 
 .objective-card h3 {
-  color: #3498db;
+  color: var(--text-primary);
   margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--primary-cyan), var(--primary-purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.objective-card p {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
 }
 
 .long-term-goals {
@@ -61,7 +98,9 @@
 .long-term-goals h2 {
   text-align: center;
   margin-bottom: 2rem;
-  color: #2c3e50;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 .goals-list {
@@ -72,31 +111,137 @@
 }
 
 .goal-item {
-  background: #f8f9fa;
-  padding: 1rem;
+  background: var(--bg-card);
+  padding: 1.5rem;
   margin-bottom: 1rem;
-  border-left: 4px solid #3498db;
-  border-radius: 0 5px 5px 0;
+  border-left: 4px solid var(--primary-cyan);
+  border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0;
+  border: var(--border-medium);
+  border-left-width: 4px;
+  transition: var(--transition-normal);
+}
+
+[data-theme="dark"] .goal-item {
+  background: rgba(26, 26, 46, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-left: 4px solid var(--primary-cyan);
+}
+
+[data-theme="light"] .goal-item {
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-left: 4px solid var(--text-accent);
+}
+
+.goal-item:hover {
+  transform: translateX(5px);
+  box-shadow: var(--shadow-subtle);
+}
+
+.goal-item p {
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.6;
 }
 
 .vision {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--primary-cyan), var(--primary-purple));
   color: white;
   padding: 3rem;
-  border-radius: 10px;
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--shadow-medium);
+  border: var(--border-medium);
 }
 
 .vision h2 {
   text-align: center;
   margin-bottom: 2rem;
+  font-size: 2rem;
+  font-weight: 700;
+  color: white;
 }
 
 .vision-content p {
   font-size: 1.1rem;
   line-height: 1.7;
   margin-bottom: 1.5rem;
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .vision-content p:last-child {
   margin-bottom: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .objetivos-container {
+    padding: 1.5rem 1rem;
+  }
+  
+  .page-header h1 {
+    font-size: 2rem;
+  }
+  
+  .main-objectives h2,
+  .long-term-goals h2,
+  .vision h2 {
+    font-size: 1.75rem;
+  }
+  
+  .objectives-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .objective-card {
+    padding: 1.5rem;
+  }
+  
+  .vision {
+    padding: 2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .objetivos-container {
+    padding: 1rem 0.75rem;
+  }
+  
+  .page-header {
+    padding: 1.5rem 0;
+  }
+  
+  .page-header h1 {
+    font-size: 1.75rem;
+  }
+  
+  .subtitle {
+    font-size: 1.05rem;
+  }
+  
+  .main-objectives h2,
+  .long-term-goals h2,
+  .vision h2 {
+    font-size: 1.5rem;
+  }
+  
+  .objective-card {
+    padding: 1.25rem;
+  }
+  
+  .objective-card h3 {
+    font-size: 1.25rem;
+  }
+  
+  .goal-item {
+    padding: 1.25rem;
+  }
+  
+  .vision {
+    padding: 1.5rem;
+  }
+  
+  .vision-content p {
+    font-size: 1rem;
+  }
 }

@@ -71,6 +71,8 @@ export class LoanService {
         return APP_CONSTANTS.NETWORKS.SEPOLIA.limit; // 5 ETH
       case 'ephemery':
         return APP_CONSTANTS.NETWORKS.EPHEMERY.limit; // 3 ETH
+      case 'hoodi':
+        return APP_CONSTANTS.NETWORKS.HOODI.limit; // 5 ETH
       default:
         return 0;
     }
@@ -87,6 +89,13 @@ export class LoanService {
     
     this.loans.push(newLoan);
     this.saveLoansToStorage(); // Guardar en almacenamiento local
+    
+    console.log('💾 Préstamo creado y guardado:', {
+      id: newLoan.id,
+      blockchainLoanId: newLoan.blockchainLoanId,
+      transactionHash: newLoan.transactionHash
+    });
+    
     return newLoan;
   }
 
@@ -553,6 +562,25 @@ export class LoanService {
       console.warn('⚠️ No se pudo verificar transacción:', error);
       return false;
     }
+  }
+
+  // Actualizar información de blockchain de un préstamo
+  updateLoanBlockchainInfo(loanId: string, blockchainLoanId: number, transactionHash: string): boolean {
+    const loan = this.loans.find(l => l.id === loanId);
+    if (loan) {
+      loan.blockchainLoanId = blockchainLoanId;
+      loan.transactionHash = transactionHash;
+      this.saveLoansToStorage();
+      console.log(`✅ Préstamo ${loanId} actualizado con blockchain ID: ${blockchainLoanId}`);
+      return true;
+    }
+    console.warn(`⚠️ No se encontró el préstamo ${loanId} para actualizar`);
+    return false;
+  }
+
+  // Obtener préstamo por ID
+  getLoanById(loanId: string): LoanRequest | undefined {
+    return this.loans.find(l => l.id === loanId);
   }
 
   // Generar ID único para préstamo

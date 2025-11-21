@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WalletService } from '../../services/wallet.service';
 import { LoanService } from '../../services/loan/loan.service';
+import { SmartContractService } from '../../services/smart-contract.service';
 import { APP_CONSTANTS } from '../../constants/app.constants';
 import { PurposeTypeConfig, NetworkConfig } from '../../interfaces/loan.interface';
 import Swal from 'sweetalert2';
@@ -28,7 +29,7 @@ export class LoanRequestComponent implements OnInit {
     amount: null as number | null,
     purpose: '',
     purposeType: 'other' as 'student' | 'business' | 'health' | 'events' | 'other',
-    network: 'goerli' as 'goerli' | 'holesky' | 'sepolia' | 'ephemery',
+    network: 'hoodi' as 'goerli' | 'holesky' | 'sepolia' | 'ephemery' | 'hoodi',
     loanDuration: 7 as number // Duración del préstamo en días (por defecto 7 días)
   };
   
@@ -43,6 +44,7 @@ export class LoanRequestComponent implements OnInit {
   // Redes disponibles
   networks = [
     APP_CONSTANTS.NETWORKS.GOERLI,
+    APP_CONSTANTS.NETWORKS.HOODI,
     APP_CONSTANTS.NETWORKS.HOLESKY,
     APP_CONSTANTS.NETWORKS.SEPOLIA,
     APP_CONSTANTS.NETWORKS.EPHEMERY
@@ -68,7 +70,8 @@ export class LoanRequestComponent implements OnInit {
 
   constructor(
     private wallet: WalletService,
-    private loanService: LoanService
+    private loanService: LoanService,
+    private smartContract: SmartContractService
   ) {}
   
   ngOnInit() {
@@ -162,20 +165,20 @@ export class LoanRequestComponent implements OnInit {
         title: '🎓 Verificación Requerida',
         html: `
           <div style="text-align: left; padding: 15px;">
-            <p style="margin-bottom: 15px;">
+            <p style="margin-bottom: 15px; color: var(--text-primary);">
               Para acceder a la tasa preferencial de <strong>estudiantes (12%)</strong>, 
               necesitas verificar tu condición de estudiante.
             </p>
-            <div style="background: #f0f9ff; padding: 15px; border-radius: 8px; margin: 15px 0;">
-              <p style="margin: 5px 0;"><strong>📋 Requisitos:</strong></p>
-              <ul style="margin: 10px 0; padding-left: 20px;">
+            <div style="background: var(--status-approved-bg); padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid var(--status-approved-border);">
+              <p style="margin: 5px 0; color: var(--text-primary); font-weight: 600;"><strong>📋 Requisitos:</strong></p>
+              <ul style="margin: 10px 0; padding-left: 20px; color: var(--text-secondary);">
                 <li>Correo institucional (&#64;MicroTrust.edu.pe)</li>
                 <li>Código de estudiante</li>
                 <li>Nombre de tu universidad</li>
                 <li>Información de carrera</li>
               </ul>
             </div>
-            <p style="color: #059669; margin-top: 15px;">
+            <p style="color: var(--status-approved-text); margin-top: 15px; font-weight: 600;">
               ✓ El proceso solo toma 2 minutos
             </p>
           </div>
@@ -184,7 +187,17 @@ export class LoanRequestComponent implements OnInit {
         showCancelButton: true,
         confirmButtonText: '✓ Verificar Ahora',
         cancelButtonText: 'Más Tarde',
-        confirmButtonColor: '#667eea'
+        confirmButtonColor: 'transparent',
+        cancelButtonColor: 'transparent',
+        background: 'var(--bg-card)',
+        color: 'var(--text-primary)',
+        customClass: {
+          popup: 'swal2-popup-custom',
+          title: 'swal2-title-custom',
+          htmlContainer: 'swal2-html-custom',
+          confirmButton: 'swal2-confirm-custom',
+          cancelButton: 'swal2-cancel-custom'
+        }
       }).then((result) => {
         if (result.isConfirmed) {
           this.openStudentVerification();
@@ -209,6 +222,17 @@ export class LoanRequestComponent implements OnInit {
     }
   }
   
+  getExplorerUrl(network: string, txHash: string): string {
+    const explorers: { [key: string]: string } = {
+      'holesky': 'https://holesky.etherscan.io/tx/',
+      'sepolia': 'https://sepolia.etherscan.io/tx/',
+      'goerli': 'https://goerli.etherscan.io/tx/',
+      'ephemery': 'https://explorer.ephemery.dev/tx/',
+      'hoodi': 'https://explorer.hoodiscan.com/tx/'
+    };
+    return (explorers[network] || explorers['holesky']) + txHash;
+  }
+
   openStudentVerification() {
     // Abrir ventana de verificación
     const width = 800;
@@ -263,7 +287,7 @@ export class LoanRequestComponent implements OnInit {
   // Método para actualizar la red usando el objeto completo
   updateNetworkWithConfig(net: NetworkConfig) {
     // Verificamos que el valor sea uno de los tipos permitidos
-    if (net.value === 'goerli' || net.value === 'holesky' || net.value === 'sepolia' || net.value === 'ephemery') {
+    if (net.value === 'goerli' || net.value === 'holesky' || net.value === 'sepolia' || net.value === 'ephemery' || net.value === 'hoodi') {
       this.loanForm.network = net.value;
       this.onNetworkChange();
     }
@@ -282,12 +306,12 @@ export class LoanRequestComponent implements OnInit {
         title: 'Nombre Requerido',
         text: 'Debes ingresar tu nombre completo.',
         confirmButtonText: 'Entendido',
-        confirmButtonColor: '#ef4444',
+        confirmButtonColor: 'transparent',
         background: 'var(--bg-card)',
         color: 'var(--text-primary)',
         customClass: {
           popup: 'swal-professional',
-          confirmButton: 'swal-btn'
+          confirmButton: 'swal-btn swal2-confirm-danger'
         }
       });
       return;
@@ -311,12 +335,12 @@ export class LoanRequestComponent implements OnInit {
           </div>
         `,
         confirmButtonText: 'Entendido',
-        confirmButtonColor: '#ef4444',
+        confirmButtonColor: 'transparent',
         background: 'var(--bg-card)',
         color: 'var(--text-primary)',
         customClass: {
           popup: 'swal-professional swal-wide',
-          confirmButton: 'swal-btn'
+          confirmButton: 'swal-btn swal2-confirm-danger'
         }
       });
       return;
@@ -329,12 +353,12 @@ export class LoanRequestComponent implements OnInit {
         title: 'Monto Inválido',
         text: 'El monto del préstamo debe ser mayor a 0 ETH.',
         confirmButtonText: 'Entendido',
-        confirmButtonColor: '#ef4444',
+        confirmButtonColor: 'transparent',
         background: 'var(--bg-card)',
         color: 'var(--text-primary)',
         customClass: {
           popup: 'swal-professional',
-          confirmButton: 'swal-btn'
+          confirmButton: 'swal-btn swal2-confirm-danger'
         }
       });
       return;
@@ -365,12 +389,12 @@ export class LoanRequestComponent implements OnInit {
           </div>
         `,
         confirmButtonText: 'Entendido',
-        confirmButtonColor: '#f59e0b',
+        confirmButtonColor: 'transparent',
         background: 'var(--bg-card)',
         color: 'var(--text-primary)',
         customClass: {
           popup: 'swal-professional swal-wide',
-          confirmButton: 'swal-btn swal-btn-warning'
+          confirmButton: 'swal-btn swal2-confirm-warning'
         }
       });
       return;
@@ -383,12 +407,12 @@ export class LoanRequestComponent implements OnInit {
         title: 'Propósito Requerido',
         text: 'Debes especificar el propósito del préstamo.',
         confirmButtonText: 'Entendido',
-        confirmButtonColor: '#ef4444',
+        confirmButtonColor: 'transparent',
         background: 'var(--bg-card)',
         color: 'var(--text-primary)',
         customClass: {
           popup: 'swal-professional',
-          confirmButton: 'swal-btn'
+          confirmButton: 'swal-btn swal2-confirm-danger'
         }
       });
       return;
@@ -414,12 +438,12 @@ export class LoanRequestComponent implements OnInit {
           </div>
         `,
         confirmButtonText: 'Entendido',
-        confirmButtonColor: '#ef4444',
+        confirmButtonColor: 'transparent',
         background: 'var(--bg-card)',
         color: 'var(--text-primary)',
         customClass: {
           popup: 'swal-professional swal-wide',
-          confirmButton: 'swal-btn'
+          confirmButton: 'swal-btn swal2-confirm-danger'
         }
       });
       return;
@@ -436,7 +460,14 @@ export class LoanRequestComponent implements OnInit {
         showCancelButton: true,
         confirmButtonText: '✓ Verificar Ahora',
         cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#667eea'
+        confirmButtonColor: 'transparent',
+        background: 'var(--bg-card)',
+        color: 'var(--text-primary)',
+        customClass: {
+          popup: 'swal-professional',
+          confirmButton: 'swal-btn swal2-confirm-custom',
+          cancelButton: 'swal-btn swal2-cancel-custom'
+        }
       }).then((result) => {
         if (result.isConfirmed) {
           this.openStudentVerification();
@@ -447,23 +478,96 @@ export class LoanRequestComponent implements OnInit {
     }
     
     try {
+      this.isLoading = true;
+      
+      // Mostrar mensaje de espera
+      Swal.fire({
+        title: '⏳ Enviando a Blockchain',
+        html: `
+          <div style="text-align: center; padding: 1rem;">
+            <p>Estamos registrando tu préstamo en la blockchain...</p>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 1rem;">
+              MetaMask abrirá una ventana para confirmar la transacción.
+            </p>
+          </div>
+        `,
+        icon: 'info',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      // 1. Registrar préstamo en el Smart Contract (BLOCKCHAIN)
+      const interestRatePercent = Math.round(this.finalInterestRate * 100); // Convertir a porcentaje (ej: 0.12 -> 12)
+      const blockchainResult = await this.smartContract.requestLoan(
+        this.loanForm.amount!.toString(), // Monto en ETH
+        interestRatePercent,              // Interés como porcentaje (ej: 12 para 12%)
+        this.loanForm.loanDuration,       // Duración en días
+        this.loanForm.purpose,            // Propósito
+        this.loanForm.purposeType         // Tipo de propósito
+      );
+
+      if (!blockchainResult.success) {
+        throw new Error(blockchainResult.message || 'Error al registrar en blockchain');
+      }
+
+      // 2. Guardar también localmente para la UI con información de blockchain
       const loanRequest = this.loanService.createLoanRequest({
         borrowerName: this.loanForm.borrowerName,
-        borrowerAddress: this.account,
-        amount: this.loanForm.amount,
+        borrowerAddress: this.account!,
+        amount: this.loanForm.amount!,
         purpose: this.loanForm.purpose,
         purposeType: this.loanForm.purposeType,
         network: this.loanForm.network,
-        interestRate: this.finalInterestRate, // Usar tasa final con descuento
-        loanDuration: this.loanForm.loanDuration
+        interestRate: this.finalInterestRate,
+        loanDuration: this.loanForm.loanDuration,
+        transactionHash: blockchainResult.txHash,
+        blockchainLoanId: blockchainResult.loanId
       });
-      
-      // Mostrar mensaje de éxito
+
+      console.log('✅ Préstamo guardado localmente con blockchain ID:', loanRequest.blockchainLoanId);
+
+      Swal.close();
+
+      // Mostrar mensaje de éxito con información de blockchain
+      const explorerUrl = this.getExplorerUrl(this.loanForm.network, blockchainResult.txHash!);
       await Swal.fire({
-        title: '¡Solicitud enviada!',
-        text: 'Solicitud de préstamo enviada correctamente. Estamos procesando tu solicitud, en 24 horas se reflejará en tu cuenta.',
+        title: '✅ ¡Préstamo Registrado en Blockchain!',
+        html: `
+          <div style="text-align: left; padding: 1rem;">
+            <p style="margin-bottom: 1rem;">Tu préstamo ha sido registrado exitosamente en la blockchain.</p>
+            <div style="background: rgba(16, 185, 129, 0.1); padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+              <p style="margin: 0.5rem 0;"><strong>📝 ID del Préstamo:</strong> ${blockchainResult.loanId || 'N/A'}</p>
+              <p style="margin: 0.5rem 0;"><strong>🔗 Hash de Transacción:</strong></p>
+              <p style="margin: 0.5rem 0; word-break: break-all; font-family: monospace; font-size: 0.85rem;">
+                ${blockchainResult.txHash}
+              </p>
+            </div>
+            <p style="margin-top: 1rem; color: var(--text-muted); font-size: 0.9rem;">
+              Puedes verificar la transacción en el explorador de bloques.
+            </p>
+          </div>
+        `,
         icon: 'success',
-        confirmButtonText: 'Aceptar'
+        showCancelButton: true,
+        confirmButtonText: 'Ver en Explorador',
+        cancelButtonText: 'Cerrar',
+        confirmButtonColor: 'transparent',
+        background: 'var(--bg-card)',
+        color: 'var(--text-primary)',
+        customClass: {
+          popup: 'swal-professional',
+          confirmButton: 'swal-btn swal2-confirm-success'
+        },
+        didOpen: () => {
+          const confirmBtn = Swal.getConfirmButton();
+          if (confirmBtn) {
+            confirmBtn.onclick = () => window.open(explorerUrl, '_blank');
+          }
+        }
       });
       
       // Limpiar formulario
@@ -479,7 +583,25 @@ export class LoanRequestComponent implements OnInit {
       this.totalAmount = 0;
       this.error = null;
     } catch (e: any) {
+      Swal.close();
       this.error = e?.message || 'Error al enviar la solicitud de préstamo';
+      
+      await Swal.fire({
+        title: '❌ Error al Registrar Préstamo',
+        html: `
+          <div style="text-align: left; padding: 1rem;">
+            <p style="margin-bottom: 1rem;">${this.error}</p>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">
+              Por favor, verifica que MetaMask esté conectado y que tengas suficiente balance para pagar la tarifa de gas.
+            </p>
+          </div>
+        `,
+        icon: 'error',
+        confirmButtonText: 'Entendido',
+        confirmButtonColor: '#ef4444'
+      });
+    } finally {
+      this.isLoading = false;
     }
   }
 }

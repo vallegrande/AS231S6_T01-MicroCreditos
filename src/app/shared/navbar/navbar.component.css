@@ -235,6 +235,47 @@
   font-size: 0.85rem;
 }
 
+/* Mobile Menu Toggle */
+.mobile-menu-toggle {
+  display: none;
+  background: var(--bg-card);
+  border: var(--border-subtle);
+  border-radius: var(--border-radius-sm);
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: var(--transition-normal);
+  color: var(--text-primary);
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-menu-toggle:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--primary-cyan);
+}
+
+.mobile-menu-toggle-icon {
+  font-size: 1.5rem;
+}
+
+.mobile-menu {
+  display: none;
+  width: 100%;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+}
+
+.mobile-menu.open {
+  display: block;
+  max-height: 1000px;
+  padding: 1rem 0;
+  border-top: var(--border-subtle);
+  margin-top: 1rem;
+}
+
 /* Mobile Responsive */
 @media (max-width: 1024px) {
   .nav-container {
@@ -247,7 +288,7 @@
   
   .nav-link {
     padding: 0.625rem 0.75rem;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
   }
   
   .nav-title {
@@ -256,67 +297,178 @@
 }
 
 @media (max-width: 768px) {
+  .nav-refined {
+    padding: 0;
+  }
+  
   .nav-container {
-    flex-direction: column;
-    gap: 1rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
     padding: 1rem;
   }
   
-  .nav-menu {
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.25rem;
-  }
-  
-  .nav-link {
-    padding: 0.625rem 0.75rem;
-    font-size: 0.8rem;
-  }
-  
-  .nav-text {
-    display: none;
-  }
-  
-  .nav-icon {
-    font-size: 1.25rem;
-  }
-  
-  .account-info {
-    padding: 0.75rem 1rem;
+  .nav-brand {
+    flex: 1;
+    min-width: 0;
   }
   
   .nav-title {
-    font-size: 1.5rem;
+    font-size: 1.35rem;
+    line-height: 1.2;
   }
   
   .nav-subtitle {
+    font-size: 0.65rem;
+  }
+  
+  .mobile-menu-toggle {
+    display: flex;
+    order: 3;
+  }
+  
+  .nav-menu {
+    display: none;
+  }
+  
+  .mobile-menu {
+    display: block;
+    order: 4;
+    width: 100%;
+  }
+  
+  .mobile-menu .nav-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0;
+  }
+  
+  .mobile-menu .nav-link {
+    padding: 0.875rem 1rem;
+    font-size: 0.9rem;
+    width: 100%;
+    justify-content: flex-start;
+    border-radius: var(--border-radius-md);
+  }
+  
+  .mobile-menu .nav-text {
+    display: inline;
+  }
+  
+  .mobile-menu .nav-icon {
+    font-size: 1.1rem;
+    min-width: 1.5rem;
+  }
+  
+  .nav-auth {
+    order: 2;
+    gap: 0.75rem;
+  }
+  
+  .theme-toggle {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+  
+  .account-section {
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+  }
+  
+  .account-info {
+    padding: 0.75rem;
+    width: 100%;
+  }
+  
+  .address-value,
+  .chain-value {
     font-size: 0.7rem;
+    word-break: break-all;
   }
 }
 
 @media (max-width: 480px) {
   .nav-container {
     padding: 0.75rem;
-  }
-  
-  .nav-menu {
-    gap: 0.125rem;
-  }
-  
-  .nav-link {
-    padding: 0.5rem 0.625rem;
-  }
-  
-  .nav-icon {
-    font-size: 1.125rem;
-  }
-  
-  .account-section {
-    flex-direction: column;
     gap: 0.5rem;
   }
   
+  .nav-brand {
+    order: 1;
+  }
+  
+  .nav-title {
+    font-size: 1.2rem;
+  }
+  
+  .nav-subtitle {
+    font-size: 0.6rem;
+  }
+  
+  .mobile-menu-toggle {
+    order: 2;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0.4rem;
+  }
+  
+  .mobile-menu-toggle-icon {
+    font-size: 1.25rem;
+  }
+  
+  .nav-auth {
+    order: 3;
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .theme-toggle {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+  }
+  
+  .account-section {
+    flex: 1;
+    min-width: 0;
+  }
+  
   .account-info {
-    padding: 0.625rem 0.875rem;
+    padding: 0.625rem;
+    font-size: 0.85rem;
+  }
+  
+  .status-text {
+    font-size: 0.7rem;
+  }
+  
+  .address-label,
+  .chain-label {
+    font-size: 0.65rem;
+  }
+  
+  .address-value,
+  .chain-value {
+    font-size: 0.65rem;
+  }
+  
+  .mobile-menu {
+    order: 4;
+  }
+  
+  .mobile-menu .nav-link {
+    padding: 0.75rem;
+    font-size: 0.85rem;
+  }
+  
+  .mobile-menu .nav-icon {
+    font-size: 1rem;
+    min-width: 1.25rem;
   }
 }

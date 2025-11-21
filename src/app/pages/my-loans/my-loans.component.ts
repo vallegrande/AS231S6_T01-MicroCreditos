@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WalletService } from '../../services/wallet.service';
 import { LoanService } from '../../services/loan/loan.service';
+import { SmartContractService } from '../../services/smart-contract.service';
 import { ContractService } from '../../services/contract/contract.service';
 import { NotificationService } from '../../services/notification/notification.service';
 import { LoanRequest } from '../../interfaces/loan.interface';
@@ -44,6 +45,7 @@ export class MyLoansComponent implements OnInit, OnDestroy {
   constructor(
     private wallet: WalletService,
     private loanService: LoanService,
+    private smartContract: SmartContractService,
     private contractService: ContractService,
     private notificationService: NotificationService
   ) {}
@@ -99,6 +101,16 @@ export class MyLoansComponent implements OnInit, OnDestroy {
   getStatusLabel(status: string): string {
     return (APP_CONSTANTS.LOAN_STATUS_LABELS as any)[status] || status;
   }
+
+  getExplorerUrl(network: string, txHash: string): string {
+    const explorers: { [key: string]: string } = {
+      'holesky': 'https://holesky.etherscan.io/tx/',
+      'sepolia': 'https://sepolia.etherscan.io/tx/',
+      'goerli': 'https://goerli.etherscan.io/tx/',
+      'ephemery': 'https://explorer.ephemery.dev/tx/'
+    };
+    return (explorers[network] || explorers['holesky']) + txHash;
+  }
   
   selectLoan(loan: LoanRequest) {
     this.selectedLoan = loan;
@@ -148,12 +160,12 @@ export class MyLoansComponent implements OnInit, OnDestroy {
         title: 'Préstamo Rechazado',
         text: 'No se proporcionó información adicional sobre el rechazo.',
         confirmButtonText: 'Entendido',
-        confirmButtonColor: '#6b7280',
+        confirmButtonColor: 'transparent',
         background: 'var(--bg-card)',
         color: 'var(--text-primary)',
         customClass: {
           popup: 'swal-professional',
-          confirmButton: 'swal-btn'
+          confirmButton: 'swal-btn swal2-cancel-custom'
         }
       });
       return;
@@ -198,7 +210,7 @@ export class MyLoansComponent implements OnInit, OnDestroy {
       color: 'var(--text-primary)',
       customClass: {
         popup: 'swal-professional swal-wide',
-        confirmButton: 'swal-btn'
+        confirmButton: 'swal-btn swal2-confirm-success'
       },
       showClass: {
         popup: 'animate__animated animate__fadeInDown'
@@ -246,32 +258,142 @@ export class MyLoansComponent implements OnInit, OnDestroy {
     }
     
     this.isPaying = true;
+    
     try {
-      const result = await this.loanService.payLoan(loan.id, this.account);
-      if (result.success) {
-        await Swal.fire({
-          title: '¡Pago realizado!',
-          text: result.message,
-          icon: 'success',
-          confirmButtonText: 'Aceptar'
-        });
-        // Actualizar la lista de préstamos
-        this.loans = this.loanService.getLoansByBorrower(this.account);
-      } else {
-        await Swal.fire({
-          title: 'Error',
-          text: `Error al pagar el préstamo: ${result.message}`,
-          icon: 'error',
-          confirmButtonText: 'Aceptar'
-        });
+      // Verificar si el préstamo tiene ID de blockchain
+      const blockchainLoanId = loan.blockchainLoanId;
+      if (!blockchainLoanId) {
+        // Si no tiene ID de blockchain, intentar pagar solo localmente
+        console.warn('⚠️ Préstamo no tiene ID de blockchain, pagando solo localmente');
+        const result = await this.loanService.payLoan(loan.id, this.account);
+        if (result.success) {
+          await Swal.fire({
+            title: '¡Pago realizado!',
+            html: `
+              <div style="text-align: left; padding: 1rem;">
+                <p>El pago ha sido registrado localmente (este préstamo no estaba en blockchain).</p>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 1rem;">
+                  ${result.message}
+                </p>
+              </div>
+            `,
+            icon: 'success',
+            confirmButtonText: 'Aceptar'
+          });
+          this.loans = this.loanService.getLoansByBorrower(this.account);
+        } else {
+          throw new Error(result.message);
+        }
+        return;
       }
+
+      // Mostrar loading
+      Swal.fire({
+        title: '⏳ Pagando en Blockchain',
+        html: `
+          <div style="text-align: center; padding: 1rem;">
+            <p>Estamos procesando tu pago en la blockchain...</p>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 1rem;">
+              MetaMask abrirá una ventana para confirmar la transacción.
+            </p>
+          </div>
+        `,
+        icon: 'info',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      // 1. Pagar en el Smart Contract (BLOCKCHAIN)
+      const blockchainResult = await this.smartContract.payLoan(
+        blockchainLoanId,
+        totalAmount.toFixed(6) // Monto total con interés
+      );
+
+      if (!blockchainResult.success) {
+        throw new Error(blockchainResult.message || 'Error al pagar en blockchain');
+      }
+
+      // 2. Actualizar también localmente
+      const localResult = await this.loanService.payLoan(loan.id, this.account);
+      
+      // 3. Agregar información de blockchain al préstamo local
+      const updatedLoan = this.loanService.getLoansByBorrower(this.account).find(l => l.id === loan.id);
+      if (updatedLoan) {
+        updatedLoan.transactionHash = blockchainResult.txHash;
+      }
+
+      Swal.close();
+
+      // Mostrar éxito con información de blockchain
+      const explorerUrl = this.getExplorerUrl(loan.network, blockchainResult.txHash!);
+      await Swal.fire({
+        title: '✅ ¡Pago Realizado en Blockchain!',
+        html: `
+          <div style="text-align: left; padding: 1rem;">
+            <p style="margin-bottom: 1rem;">Tu pago ha sido procesado exitosamente en la blockchain.</p>
+            <div style="background: rgba(16, 185, 129, 0.1); padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+              <p style="margin: 0.5rem 0;"><strong>💰 Total pagado:</strong> ${totalAmount.toFixed(6)} ETH</p>
+              <p style="margin: 0.5rem 0;"><strong>🔗 Hash de Transacción:</strong></p>
+              <p style="margin: 0.5rem 0; word-break: break-all; font-family: monospace; font-size: 0.85rem;">
+                ${blockchainResult.txHash}
+              </p>
+            </div>
+            <p style="margin-top: 1rem; color: var(--text-muted); font-size: 0.9rem;">
+              Puedes verificar la transacción en el explorador de bloques.
+            </p>
+          </div>
+        `,
+        icon: 'success',
+        showCancelButton: true,
+        confirmButtonText: 'Ver en Explorador',
+        cancelButtonText: 'Cerrar',
+        confirmButtonColor: 'transparent',
+        background: 'var(--bg-card)',
+        color: 'var(--text-primary)',
+        customClass: {
+          popup: 'swal-professional',
+          confirmButton: 'swal-btn swal2-confirm-success',
+          cancelButton: 'swal-btn swal2-cancel-custom'
+        },
+        didOpen: () => {
+          const confirmBtn = Swal.getConfirmButton();
+          if (confirmBtn) {
+            confirmBtn.onclick = () => window.open(explorerUrl, '_blank');
+          }
+        }
+      });
+
+      // Actualizar la lista de préstamos
+      this.loans = this.loanService.getLoansByBorrower(this.account);
+      this.allLoans = this.loanService.getAllLoans();
+      this.applyFilters();
+
     } catch (error: any) {
+      Swal.close();
       console.error('Error al pagar el préstamo:', error);
       await Swal.fire({
-        title: 'Error',
-        text: `Error al pagar el préstamo: ${error.message || 'Error desconocido'}`,
+        title: '❌ Error al Pagar Préstamo',
+        html: `
+          <div style="text-align: left; padding: 1rem;">
+            <p style="margin-bottom: 1rem;">${error.message || 'Error desconocido'}</p>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">
+              Por favor, verifica que MetaMask esté conectado y que tengas suficiente balance para pagar la tarifa de gas y el monto total del préstamo.
+            </p>
+          </div>
+        `,
         icon: 'error',
-        confirmButtonText: 'Aceptar'
+        confirmButtonText: 'Entendido',
+        confirmButtonColor: 'transparent',
+        background: 'var(--bg-card)',
+        color: 'var(--text-primary)',
+        customClass: {
+          popup: 'swal-professional',
+          confirmButton: 'swal-btn swal2-confirm-danger'
+        }
       });
     } finally {
       this.isPaying = false;
