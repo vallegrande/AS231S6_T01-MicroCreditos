@@ -228,7 +228,7 @@ export class LoanRequestComponent implements OnInit {
       'sepolia': 'https://sepolia.etherscan.io/tx/',
       'goerli': 'https://goerli.etherscan.io/tx/',
       'ephemery': 'https://explorer.ephemery.dev/tx/',
-      'hoodi': 'https://explorer.hoodiscan.com/tx/'
+      'hoodi': 'https://hoodi.etherscan.io//tx/'
     };
     return (explorers[network] || explorers['holesky']) + txHash;
   }

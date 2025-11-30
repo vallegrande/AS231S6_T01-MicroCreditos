@@ -99,17 +99,21 @@ export class WalletService {
         rpcUrls: ['https://goerli.infura.io/v3/'],
         blockExplorerUrls: ['https://goerli.etherscan.io/']
       },
-      'hoodi':{
-        chainId: '0x88bb0',
-        chainName: 'Ethereum Hoodi ',
-        nativeCurrency:{
-          name:'Ethereun Hoodi ',
-          symbol:'ETH',
-          decimals:'18'
-        },
-        rpcUrl:['https://hoodi.drpc.org'],
-        blockExporerUrls:['wss://hoodi.etherscan.io']
-      }
+      'hoodi': {
+         "chainId": "0x88bb0",
+          "chainName": "Ethereum Hoodi Testnet",
+        "nativeCurrency": {
+          "name": "Ethereum Hoodi",
+          "symbol": "ETH",
+          "decimals": 18 
+    },
+    "rpcUrls": [
+        "https://hoodi.drpc.org" 
+    ],
+    "blockExplorerUrls": [
+        "https://hoodi.etherscan.io" 
+    ]
+}
     };
 
     try {

@@ -52,7 +52,7 @@ export class BlockchainExplorerService {
         },
         hoodi: {
             api: 'https://api.hoodiscan.com/api',
-            explorer: 'https://explorer.hoodiscan.com'
+            explorer: 'https://hoodi.etherscan.io/'
         }
     };
 

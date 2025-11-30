@@ -149,7 +149,8 @@ export class UserProfileComponent implements OnInit {
       '0x5': 'Goerli',
       '0xaa36a7': 'Sepolia',
       '0x4268': 'Holešky',
-      '0x1a4': 'Ephemery'
+      '0x1a4': 'Ephemery',
+      'hoodi': 'Hoodi Ethereum'
     };
     
     return chainIdMap[chainId] || `Chain ID: ${chainId}`;
@@ -191,7 +192,8 @@ export class UserProfileComponent implements OnInit {
       '0x5': `https://goerli.etherscan.io/address/${this.account}`,    // Goerli
       '0xaa36a7': `https://sepolia.etherscan.io/address/${this.account}`, // Sepolia
       '0x4268': `https://holesky.etherscan.io/address/${this.account}`,   // Holešky
-      '0x1a4': `https://explorer.ephemery.dev/address/${this.account}`    // Ephemery
+      '0x1a4': `https://explorer.ephemery.dev/address/${this.account}`,    // Ephemery
+      '0x88bb0': `https://hoodi.etherscan.io/address/${this.account}`    // Hoodi Testnet
     };
 
     const explorerUrl = explorerMap[this.chainId];
