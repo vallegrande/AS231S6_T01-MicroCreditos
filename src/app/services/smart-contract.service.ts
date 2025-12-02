@@ -20,11 +20,12 @@ export class SmartContractService {
   private provider: ethers.BrowserProvider | null = null;
   private signer: ethers.Signer | null = null;
   private contract: ethers.Contract | null = null;
-  
+  private currentContractAddress: string = '';
+
   constructor() {
     this.initializeProvider();
   }
-  
+
   /**
    * Inicializar el provider de ethers
    */
@@ -32,35 +33,60 @@ export class SmartContractService {
     if (typeof window.ethereum !== 'undefined') {
       this.provider = new ethers.BrowserProvider(window.ethereum);
       this.signer = await this.provider.getSigner();
-      
+
+      // Obtener la red actual
+      const network = await this.provider.getNetwork();
+      const chainId = network.chainId;
+
+      this.currentContractAddress = environment.contractAddressHoodi; // Default to Hoodi
+
+      // Sepolia Chain ID: 11155111 (0xaa36a7)
+      if (chainId === 11155111n) {
+        this.currentContractAddress = environment.contractAddressSepolia;
+        console.log('🔵 Conectado a Sepolia');
+      } else if (chainId === 559088n) { // Hoodi Chain ID
+        this.currentContractAddress = environment.contractAddressHoodi;
+        console.log('🟡 Conectado a Hoodi');
+      } else {
+        console.warn('⚠️ Red no reconocida, usando contrato Hoodi por defecto');
+      }
+
       // Inicializar el contrato
       this.contract = new ethers.Contract(
-        environment.contractAddress,
+        this.currentContractAddress,
         MicroLoanABI.abi,
         this.signer
       );
-      
+
       console.log('✅ Smart Contract inicializado');
-      console.log('📍 Address del contrato:', environment.contractAddress);
+      console.log('📍 Address del contrato:', this.currentContractAddress);
       console.log('🔗 Para verificar, ejecuta en la consola:');
       console.log('   window.smartContractService.verifyContract()');
-      
+
       // Exponer el servicio globalmente para verificación en consola
       if (typeof window !== 'undefined') {
         (window as any).smartContractService = this;
+      }
+
+      // Escuchar cambios de red
+      if (window.ethereum.on) {
+        window.ethereum.on('chainChanged', () => {
+          console.log('🔄 Red cambiada, recargando proveedor...');
+          window.location.reload();
+        });
       }
     } else {
       console.error('❌ MetaMask no está instalado');
     }
   }
-  
+
   /**
    * Reconectar el provider (útil cuando cambia la cuenta)
    */
   async reconnect() {
     await this.initializeProvider();
   }
-  
+
   /**
    * Solicitar un préstamo en el Smart Contract
    */
@@ -75,12 +101,12 @@ export class SmartContractService {
       if (!this.contract) {
         throw new Error('Contrato no inicializado');
       }
-      
+
       // Convertir el monto a Wei
       const amountInWei = ethers.parseEther(amount);
-      
+
       console.log('📝 Solicitando préstamo en blockchain...');
-      
+
       // Llamar a la función del contrato
       const tx = await this.contract['requestLoan'](
         amountInWei,
@@ -89,24 +115,24 @@ export class SmartContractService {
         purpose,
         purposeType
       );
-      
+
       console.log('⏳ Esperando confirmación de transacción...');
       const receipt = await tx.wait();
-      
+
       console.log('📋 Recibo de transacción:', {
         hash: receipt.hash,
         blockNumber: receipt.blockNumber,
         logsCount: receipt.logs.length,
         status: receipt.status
       });
-      
+
       // Obtener el ID del préstamo - MÉTODO 1: Del valor de retorno de la función
       let loanId: number | undefined;
-      
+
       // La función requestLoan devuelve el loanId directamente
       // Intentar obtenerlo del receipt
       console.log('🔍 Intentando obtener loanId del valor de retorno...');
-      
+
       // MÉTODO 2: Parsear eventos
       console.log('🔍 Parseando eventos del recibo...');
       for (let i = 0; i < receipt.logs.length; i++) {
@@ -116,19 +142,19 @@ export class SmartContractService {
           topics: log.topics,
           data: log.data
         });
-        
+
         try {
           const parsed = this.contract.interface.parseLog({
             topics: [...log.topics],
             data: log.data
           });
-          
+
           if (parsed) {
             console.log(`   ✅ Evento parseado:`, {
               name: parsed.name,
               args: parsed.args.toArray ? parsed.args.toArray() : parsed.args
             });
-            
+
             if (parsed.name === 'LoanRequested') {
               // El loanId es el primer argumento indexado del evento
               loanId = Number(parsed.args[0]);
@@ -142,18 +168,18 @@ export class SmartContractService {
           continue;
         }
       }
-      
+
       // MÉTODO 3: Obtener del contador del contrato (fallback)
       if (loanId === undefined || loanId === 0) {
         console.warn('⚠️ No se pudo extraer el loanId del evento, usando contador del contrato...');
-        
+
         try {
           const counter = await this.contract['loanCounter']();
           loanId = Number(counter);
           console.log('✅ LoanId obtenido del contador del contrato:', loanId);
         } catch (error) {
           console.error('❌ No se pudo obtener el loanId del contador:', error);
-          
+
           // MÉTODO 4: Último recurso - consultar el último préstamo del usuario
           console.warn('⚠️ Intentando último método: consultar préstamos del usuario...');
           try {
@@ -167,16 +193,16 @@ export class SmartContractService {
           }
         }
       }
-      
+
       console.log('✅ Préstamo solicitado exitosamente. ID final:', loanId);
-      
+
       return {
         success: true,
         loanId,
         txHash: receipt.hash,
         message: 'Préstamo solicitado exitosamente en blockchain'
       };
-      
+
     } catch (error: any) {
       console.error('❌ Error al solicitar préstamo:', error);
       return {
@@ -185,7 +211,7 @@ export class SmartContractService {
       };
     }
   }
-  
+
   /**
    * Aprobar un préstamo (solo admin)
    */
@@ -197,18 +223,18 @@ export class SmartContractService {
       if (!this.contract) {
         throw new Error('Contrato no inicializado');
       }
-      
+
       // Primero verificar el estado del préstamo en blockchain
       console.log(`🔍 Verificando estado del préstamo ${loanId} en blockchain...`);
       const loanData = await this.getLoan(loanId);
-      
+
       if (!loanData) {
         return {
           success: false,
           message: `El préstamo #${loanId} no existe en el smart contract. Verifica que el ID sea correcto.`
         };
       }
-      
+
       // Verificar que el préstamo tenga un borrower válido (no sea dirección cero)
       if (loanData.borrower === '0x0000000000000000000000000000000000000000') {
         return {
@@ -216,7 +242,7 @@ export class SmartContractService {
           message: `El préstamo #${loanId} no existe o no tiene un prestatario válido.`
         };
       }
-      
+
       // Verificar el estado del préstamo
       // Status: 0 = Pending, 1 = Approved, 2 = Rejected, 3 = Paid
       if (loanData.status !== 0) {
@@ -227,37 +253,37 @@ export class SmartContractService {
           message: `Este préstamo ya no está pendiente. Estado actual: ${currentStatus}.\n\nSolo los préstamos en estado "Pendiente" pueden ser aprobados.`
         };
       }
-      
+
       const amountInWei = ethers.parseEther(amount);
-      
+
       console.log('✅ Aprobando préstamo en blockchain...');
       console.log(`   Préstamo ID: ${loanId}`);
       console.log(`   Monto: ${amount} ETH`);
       console.log(`   Prestatario: ${loanData.borrower}`);
       console.log(`   Estado actual: Pendiente`);
-      
+
       // Llamar a la función del contrato enviando ETH
       const tx = await this.contract['approveLoan'](loanId, {
         value: amountInWei
       });
-      
+
       console.log('⏳ Esperando confirmación de transacción...');
       const receipt = await tx.wait();
-      
+
       console.log('✅ Préstamo aprobado exitosamente');
-      
+
       return {
         success: true,
         txHash: receipt.hash,
         message: 'Préstamo aprobado y fondos transferidos'
       };
-      
+
     } catch (error: any) {
       console.error('❌ Error al aprobar préstamo:', error);
-      
+
       // Mejorar mensajes de error específicos
       let errorMessage = 'Error al aprobar préstamo';
-      
+
       if (error.message?.includes('Not pending')) {
         errorMessage = 'Este préstamo ya no está en estado pendiente. Puede que ya haya sido aprobado o rechazado anteriormente.';
       } else if (error.message?.includes('Only admin')) {
@@ -269,14 +295,14 @@ export class SmartContractService {
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       return {
         success: false,
         message: errorMessage
       };
     }
   }
-  
+
   /**
    * Rechazar un préstamo (solo admin)
    */
@@ -288,22 +314,22 @@ export class SmartContractService {
       if (!this.contract) {
         throw new Error('Contrato no inicializado');
       }
-      
+
       console.log('❌ Rechazando préstamo en blockchain...');
-      
+
       const tx = await this.contract['rejectLoan'](loanId, reason);
-      
+
       console.log('⏳ Esperando confirmación de transacción...');
       const receipt = await tx.wait();
-      
+
       console.log('✅ Préstamo rechazado exitosamente');
-      
+
       return {
         success: true,
         txHash: receipt.hash,
         message: 'Préstamo rechazado en blockchain'
       };
-      
+
     } catch (error: any) {
       console.error('❌ Error al rechazar préstamo:', error);
       return {
@@ -312,7 +338,7 @@ export class SmartContractService {
       };
     }
   }
-  
+
   /**
    * Pagar un préstamo
    */
@@ -324,26 +350,26 @@ export class SmartContractService {
       if (!this.contract) {
         throw new Error('Contrato no inicializado');
       }
-      
+
       const amountInWei = ethers.parseEther(totalAmount);
-      
+
       console.log('💰 Pagando préstamo en blockchain...');
-      
+
       const tx = await this.contract['payLoan'](loanId, {
         value: amountInWei
       });
-      
+
       console.log('⏳ Esperando confirmación de transacción...');
       const receipt = await tx.wait();
-      
+
       console.log('✅ Préstamo pagado exitosamente');
-      
+
       return {
         success: true,
         txHash: receipt.hash,
         message: 'Préstamo pagado exitosamente'
       };
-      
+
     } catch (error: any) {
       console.error('❌ Error al pagar préstamo:', error);
       return {
@@ -352,7 +378,7 @@ export class SmartContractService {
       };
     }
   }
-  
+
   /**
    * Obtener información de un préstamo
    */
@@ -361,12 +387,12 @@ export class SmartContractService {
       if (!this.contract) {
         throw new Error('Contrato no inicializado');
       }
-      
+
       console.log(`📋 Consultando préstamo #${loanId} en el contrato...`);
       const result = await this.contract['getLoan'](loanId);
-      
+
       console.log('📦 Datos recibidos del contrato:', result);
-      
+
       // La función getLoan devuelve: (borrower, amount, rate, status, paid)
       const loanData: LoanData = {
         borrower: result[0],
@@ -375,19 +401,17 @@ export class SmartContractService {
         status: Number(result[3]),
         isPaid: result[4]
       };
-      
+
       console.log('✅ Préstamo parseado:', loanData);
-      
+
       return loanData;
-      
+
     } catch (error: any) {
       console.error('❌ Error al obtener préstamo:', error);
       return null;
     }
   }
-  
 
-  
   /**
    * Escuchar eventos del contrato
    */
@@ -396,7 +420,7 @@ export class SmartContractService {
       console.error('Contrato no inicializado');
       return;
     }
-    
+
     // Escuchar evento LoanRequested
     this.contract.on('LoanRequested', (loanId: bigint, borrower: string, amount: bigint, purpose: string) => {
       callback({
@@ -407,7 +431,7 @@ export class SmartContractService {
         purpose
       });
     });
-    
+
     // Escuchar evento LoanApproved
     this.contract.on('LoanApproved', (loanId: bigint, borrower: string, amount: bigint) => {
       callback({
@@ -417,7 +441,7 @@ export class SmartContractService {
         amount: ethers.formatEther(amount)
       });
     });
-    
+
     // Escuchar evento LoanPaid
     this.contract.on('LoanPaid', (loanId: bigint, borrower: string, amount: bigint) => {
       callback({
@@ -443,8 +467,8 @@ export class SmartContractService {
     message: string;
   }> {
     try {
-      const expectedAddress = environment.contractAddress.toLowerCase();
-      
+      const expectedAddress = this.currentContractAddress.toLowerCase();
+
       if (!this.contract) {
         return {
           isConnected: false,
@@ -466,7 +490,7 @@ export class SmartContractService {
         // Obtener balance del contrato desde el provider
         const balanceWei = await this.provider!.getBalance(contractAddress);
         balance = ethers.formatEther(balanceWei);
-        
+
         // Obtener owner del contrato (si existe la función)
         try {
           owner = await this.contract['owner']();
@@ -501,7 +525,7 @@ export class SmartContractService {
       return {
         isConnected: false,
         contractAddress: 'Error',
-        expectedAddress: environment.contractAddress.toLowerCase(),
+        expectedAddress: this.currentContractAddress.toLowerCase(),
         isCorrect: false,
         message: `❌ Error al verificar el contrato: ${error.message}`
       };
@@ -512,7 +536,7 @@ export class SmartContractService {
    * Obtener el address del contrato actual
    */
   getContractAddress(): string {
-    return environment.contractAddress;
+    return this.currentContractAddress;
   }
 
   /**

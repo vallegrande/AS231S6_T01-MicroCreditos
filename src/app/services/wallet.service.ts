@@ -100,20 +100,20 @@ export class WalletService {
         blockExplorerUrls: ['https://goerli.etherscan.io/']
       },
       'hoodi': {
-         "chainId": "0x88bb0",
-          "chainName": "Ethereum Hoodi Testnet",
-        "nativeCurrency": {
-          "name": "Ethereum Hoodi",
-          "symbol": "ETH",
-          "decimals": 18 
-    },
-    "rpcUrls": [
-        "https://hoodi.drpc.org" 
-    ],
-    "blockExplorerUrls": [
-        "https://hoodi.etherscan.io" 
-    ]
-}
+        chainId: "0x88bb0",
+        chainName: "Ethereum Hoodi Testnet",
+        nativeCurrency: {
+          name: "Ethereum Hoodi",
+          symbol: "ETH",
+          decimals: 18
+        },
+        rpcUrls: [
+          "https://hoodi.drpc.org"
+        ],
+        blockExplorerUrls: [
+          "https://hoodi.etherscan.io"
+        ]
+      }
     };
 
     try {
