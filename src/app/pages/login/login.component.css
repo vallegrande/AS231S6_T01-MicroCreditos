@@ -460,7 +460,9 @@ Estilos para autenticación dual */
   .btn-content {
     gap: 10px;
   }
-}/
+}
+
+/*
 * Contenedor para el botón de Google */
 .google-signin-container {
   position: relative;

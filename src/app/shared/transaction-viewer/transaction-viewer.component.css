@@ -625,7 +625,7 @@
     display: none;
   }
 }
-/
+/*
 * Estado de red */
 .network-status {
   display: flex;
